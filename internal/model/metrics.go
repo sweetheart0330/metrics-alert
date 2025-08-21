@@ -3,6 +3,10 @@ package models
 const (
 	Counter = "counter"
 	Gauge   = "gauge"
+
+	TypeParam  = "type"
+	NameParam  = "name"
+	ValueParam = "value"
 )
 
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
@@ -11,7 +15,7 @@ const (
 // что бы отличать значение "0", от не заданного значения
 // и соответственно не кодировать в структуру.
 type Metrics struct {
-	ID    string   `json:"id"`
+	ID    string   `json:"id"` // ID - для названия метрики?
 	MType string   `json:"type"`
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
