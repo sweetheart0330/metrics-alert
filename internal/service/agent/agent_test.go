@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/sweetheart0330/metrics-alert/internal/mocks"
@@ -16,7 +17,7 @@ func Test_NewAgent(t *testing.T) {
 	mockCl := mocks.NewMockIClient(ctrl)
 	mockCollector := mocks.NewMockMetricCollector(ctrl)
 
-	ag := NewAgent(mockCl, mockCollector)
+	ag := NewAgent(mockCl, mockCollector, 10)
 
 	assert.Equal(t, mockCl, ag.cl)
 	assert.Equal(t, mockCollector, ag.collect)
@@ -115,7 +116,7 @@ func Test_StartAgent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ag := Agent{cl: mockCl, collect: mockCollector}
+			ag := Agent{cl: mockCl, collect: mockCollector, reportInterval: 10 * time.Second}
 			tt.args.ctx, tt.args.cancel = context.WithCancel(context.Background())
 			tt.prepare(tt.args, tt.wantErr)
 

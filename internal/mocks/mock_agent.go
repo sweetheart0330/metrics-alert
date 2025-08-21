@@ -12,7 +12,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	model "github.com/sweetheart0330/metrics-alert/internal/model"
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,10 +41,10 @@ func (m *MockMetricCollector) EXPECT() *MockMetricCollectorMockRecorder {
 }
 
 // GetCounter mocks base method.
-func (m *MockMetricCollector) GetCounter() model.Metrics {
+func (m *MockMetricCollector) GetCounter() models.Metrics {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCounter")
-	ret0, _ := ret[0].(model.Metrics)
+	ret0, _ := ret[0].(models.Metrics)
 	return ret0
 }
 

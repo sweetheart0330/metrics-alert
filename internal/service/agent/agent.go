@@ -10,24 +10,22 @@ import (
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
-const (
-	MetricSendDelay = 10 * time.Second
-)
-
 type Agent struct {
-	cl      client.IClient
-	collect agent.MetricCollector
+	cl             client.IClient
+	collect        agent.MetricCollector
+	reportInterval time.Duration
 }
 
-func NewAgent(cl client.IClient, agent agent.MetricCollector) *Agent {
+func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval time.Duration) *Agent {
 	return &Agent{
-		cl:      cl,
-		collect: agent,
+		cl:             cl,
+		collect:        agent,
+		reportInterval: reportInterval,
 	}
 }
 
 func (a Agent) StartAgent(ctx context.Context) error {
-	tick := time.NewTicker(MetricSendDelay)
+	tick := time.NewTicker(a.reportInterval)
 	defer tick.Stop()
 
 	for {

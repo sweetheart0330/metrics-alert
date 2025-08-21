@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -14,22 +15,20 @@ import (
 	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
 )
 
-const (
-	host = "localhost:8080"
-)
+func RunAgent(ctx context.Context) error {
+	opt := getAgentOptions()
 
-func RunAgent() error {
-	ctx := context.Background()
-	clCfg := httpCl.Config{Host: "http://" + host}
+	clCfg := httpCl.Config{Host: "http://" + opt.Address}
 	cl := httpCl.NewClient(clCfg)
-	ag := runtime.NewRuntimeMetrics(ctx)
-
-	serv := servAgent.NewAgent(cl, ag)
+	ag := runtime.NewRuntimeMetrics(ctx, time.Duration(opt.PollInterval)*time.Second)
+	serv := servAgent.NewAgent(cl, ag, time.Duration(opt.ReportInterval)*time.Second)
 
 	return serv.StartAgent(ctx)
 }
 
 func RunServer() error {
+
+	addr := getServerAddress()
 	inMemoryRepo := memory.NewMemStorage()
 	MetricServ := metric.New(inMemoryRepo)
 	h, err := handler.NewHandler(MetricServ)
@@ -39,6 +38,6 @@ func RunServer() error {
 
 	route := router.NewRouter(h)
 
-	fmt.Println("Listening on ", ":8080")
-	return http.ListenAndServe(":8080", route)
+	fmt.Println("Listening on ", addr)
+	return http.ListenAndServe(addr, route)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
@@ -41,18 +42,19 @@ const (
 
 	//counter metrics
 	PollCount = "PollCount"
-
-	metricUpdateDelay = 2 * time.Second
 )
 
 type RuntimeMetrics struct {
-	gauge   map[string]*float64
-	counter int64
+	gauge        map[string]*float64
+	mu           sync.RWMutex
+	counter      int64
+	pollInterval time.Duration
 }
 
-func NewRuntimeMetrics(ctx context.Context) *RuntimeMetrics {
+func NewRuntimeMetrics(ctx context.Context, pollInterval time.Duration) *RuntimeMetrics {
 	metric := &RuntimeMetrics{
-		gauge: make(map[string]*float64),
+		gauge:        make(map[string]*float64),
+		pollInterval: pollInterval,
 	}
 
 	go metric.startCollectMetrics(ctx)
@@ -61,6 +63,9 @@ func NewRuntimeMetrics(ctx context.Context) *RuntimeMetrics {
 }
 
 func (r *RuntimeMetrics) GetGauge() map[string]*float64 {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	return r.gauge
 }
 
@@ -73,18 +78,22 @@ func (r *RuntimeMetrics) GetCounter() models.Metrics {
 }
 
 func (r *RuntimeMetrics) startCollectMetrics(ctx context.Context) {
+	t := time.NewTicker(r.pollInterval)
+	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-t.C:
 			r.collectMetrics()
-			time.Sleep(metricUpdateDelay)
 		}
 	}
 }
 
 func (r *RuntimeMetrics) collectMetrics() map[string]*float64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 

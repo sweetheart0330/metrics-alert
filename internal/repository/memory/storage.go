@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"fmt"
+	"sync"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
@@ -9,6 +9,7 @@ import (
 
 type MemStorage struct {
 	metrics map[string]models.Metrics
+	mu      sync.Mutex
 }
 
 func NewMemStorage() *MemStorage {
@@ -18,24 +19,27 @@ func NewMemStorage() *MemStorage {
 }
 
 func (ms *MemStorage) UpdateGaugeMetric(metric models.Metrics) error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
 	ms.metrics[metric.ID] = metric
 
-	fmt.Printf("current gauge ID: %s, value: %f\n", metric.ID, *metric.Value)
 	return nil
 }
 
 func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
 	val, ok := ms.metrics[metric.ID]
 	if !ok {
 		ms.metrics[metric.ID] = metric
-		fmt.Printf("current gauge ID: %s, value: %d\n", metric.ID, *metric.Delta)
 		return nil
 	}
 
 	*val.Delta = *val.Delta + *metric.Delta
 	ms.metrics[metric.ID] = val
 
-	fmt.Println("current counter value: ", ms.metrics[metric.ID])
 	return nil
 }
 
