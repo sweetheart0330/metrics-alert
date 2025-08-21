@@ -1,36 +1,57 @@
 package memory
 
-import "fmt"
+import (
+	"fmt"
+
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
+)
 
 type MemStorage struct {
-	gaugeStorage   map[string]float64
-	counterStorage map[string]int64
+	metrics map[string]models.Metrics
 }
 
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		gaugeStorage:   make(map[string]float64),
-		counterStorage: make(map[string]int64),
+		metrics: map[string]models.Metrics{},
 	}
 }
 
-func (ms *MemStorage) UpdateGaugeMetric(name string, value float64) error {
-	ms.gaugeStorage[name] = value
+func (ms *MemStorage) UpdateGaugeMetric(metric models.Metrics) error {
+	ms.metrics[metric.ID] = metric
 
-	fmt.Println("current gauge value: ", value)
+	fmt.Printf("current gauge ID: %s, value: %f\n", metric.ID, *metric.Value)
 	return nil
 }
 
-func (ms *MemStorage) UpdateCounterMetric(name string, value int64) error {
-	val, ok := ms.counterStorage[name]
+func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
+	val, ok := ms.metrics[metric.ID]
 	if !ok {
-		ms.counterStorage[name] = value
-		fmt.Println("new counter value: ", ms.counterStorage[name])
+		ms.metrics[metric.ID] = metric
+		fmt.Printf("current gauge ID: %s, value: %d\n", metric.ID, *metric.Delta)
 		return nil
 	}
 
-	ms.counterStorage[name] = val + value
+	*val.Delta = *val.Delta + *metric.Delta
+	ms.metrics[metric.ID] = val
 
-	fmt.Println("current counter value: ", ms.counterStorage[name])
+	fmt.Println("current counter value: ", ms.metrics[metric.ID])
 	return nil
+}
+
+func (ms *MemStorage) GetMetric(metricID string) (models.Metrics, error) {
+	m, ok := ms.metrics[metricID]
+	if !ok {
+		return models.Metrics{}, metric.ErrMetricNotFound
+	}
+
+	return m, nil
+}
+func (ms *MemStorage) GetAllMetrics() ([]models.Metrics, error) {
+	mList := make([]models.Metrics, 0, len(ms.metrics))
+	for _, m := range ms.metrics {
+		mList = append(mList, m)
+	}
+
+	return mList, nil
 }

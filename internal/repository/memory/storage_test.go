@@ -4,47 +4,52 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
 func Test_NewMemStorage(t *testing.T) {
-	gaugeMap := make(map[string]float64)
-	counterMap := make(map[string]int64)
+	metricMap := make(map[string]models.Metrics)
 
 	memStrg := NewMemStorage()
 
-	assert.Equal(t, gaugeMap, memStrg.gaugeStorage)
-	assert.Equal(t, counterMap, memStrg.counterStorage)
+	assert.Equal(t, metricMap, memStrg.metrics)
 }
 
 func Test_UpdateGaugeMetric(t *testing.T) {
 	memStrg := MemStorage{
-		gaugeStorage: make(map[string]float64),
+		metrics: make(map[string]models.Metrics),
 	}
 
-	mtrKey := "test-name"
 	val := 12.5
+	metric := models.Metrics{
+		ID:    "test-name",
+		Value: &val,
+	}
 
-	_ = memStrg.UpdateGaugeMetric(mtrKey, val)
+	_ = memStrg.UpdateGaugeMetric(metric)
 
-	assert.Equal(t, val, memStrg.gaugeStorage[mtrKey])
+	assert.Equal(t, val, *memStrg.metrics[metric.ID].Value)
 }
 
 func Test_UpdateCounterMetric(t *testing.T) {
 	memStrg := MemStorage{
-		counterStorage: make(map[string]int64),
+		metrics: make(map[string]models.Metrics),
 	}
 
-	// first call
-	mtrKey := "test-name"
-	val := 12
+	val := int64(12)
+	metric := models.Metrics{
+		ID:    "test-name",
+		Delta: &val,
+	}
 
-	_ = memStrg.UpdateCounterMetric(mtrKey, int64(val))
+	_ = memStrg.UpdateCounterMetric(metric)
 
-	assert.Equal(t, int64(val), memStrg.counterStorage[mtrKey])
+	assert.Equal(t, val, *memStrg.metrics[metric.ID].Delta)
 
 	//sec call
-	val2 := 2
-	_ = memStrg.UpdateCounterMetric(mtrKey, int64(val2))
+	val2 := int64(2)
+	metric.Delta = &val2
+	_ = memStrg.UpdateCounterMetric(metric)
 
-	assert.Equal(t, int64(val+val2), memStrg.counterStorage[mtrKey])
+	assert.Equal(t, int64(14), *memStrg.metrics[metric.ID].Delta)
 }

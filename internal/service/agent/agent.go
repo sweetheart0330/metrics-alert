@@ -27,15 +27,19 @@ func NewAgent(cl client.IClient, agent agent.MetricCollector) *Agent {
 }
 
 func (a Agent) StartAgent(ctx context.Context) error {
+	tick := time.NewTicker(MetricSendDelay)
+	defer tick.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(MetricSendDelay):
+		case <-tick.C:
 			err := a.sendMetrics()
 			if err != nil {
 				return fmt.Errorf("failed to send metrics: %w", err)
 			}
+
 			fmt.Println("metrics sent to server")
 		}
 	}

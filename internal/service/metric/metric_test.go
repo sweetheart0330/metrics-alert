@@ -19,7 +19,7 @@ func Test_New(t *testing.T) {
 	assert.Equal(t, mockRepo, m.repo)
 }
 
-func Test_UpdateGaugeMetric(t *testing.T) {
+func Test_UpdateMetric(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockIRepository(ctrl)
 
@@ -27,61 +27,50 @@ func Test_UpdateGaugeMetric(t *testing.T) {
 		name    string
 		metric  models.Metrics
 		wantErr error
+		prepare func(metric models.Metrics, err error)
 	}{
 		{
-			name: "success",
+			name: "success counter",
 			metric: models.Metrics{
 				ID:    "test-metrics",
-				Value: ptrFloat(5.2),
-			},
-			wantErr: nil,
-		},
-		{
-			name: "error",
-			metric: models.Metrics{
-				Value: ptrFloat(0),
-			},
-			wantErr: errors.New("error"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := Metric{repo: mockRepo}
-
-			mockRepo.EXPECT().UpdateGaugeMetric(tt.metric.ID, *tt.metric.Value).Return(tt.wantErr)
-
-			err := m.UpdateGaugeMetric(tt.metric)
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("UpdateGaugeMetric() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_UpdateCounterMetric(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockRepo := mocks.NewMockIRepository(ctrl)
-
-	tests := []struct {
-		name    string
-		metric  models.Metrics
-		wantErr error
-	}{
-		{
-			name: "success",
-			metric: models.Metrics{
-				ID:    "test-metrics",
+				MType: models.Counter,
 				Delta: ptrInt(1),
 			},
 			wantErr: nil,
+			prepare: func(metric models.Metrics, err error) {
+				mockRepo.EXPECT().UpdateCounterMetric(metric).Return(err)
+			},
+		},
+		{
+			name: "undefined metric type",
+			metric: models.Metrics{
+				Delta: ptrInt(0),
+			},
+			wantErr: ErrUnknownMetricType,
+			prepare: func(metric models.Metrics, err error) {},
+		},
+		{
+			name: "success gauge",
+			metric: models.Metrics{
+				ID:    "test-metrics",
+				MType: models.Gauge,
+				Value: ptrFloat(5.2),
+			},
+			wantErr: nil,
+			prepare: func(metric models.Metrics, err error) {
+				mockRepo.EXPECT().UpdateGaugeMetric(metric).Return(err)
+			},
 		},
 		{
 			name: "error",
 			metric: models.Metrics{
-				Delta: ptrInt(0),
+				MType: models.Gauge,
+				Value: ptrFloat(0),
 			},
 			wantErr: errors.New("error"),
+			prepare: func(metric models.Metrics, err error) {
+				mockRepo.EXPECT().UpdateGaugeMetric(metric).Return(err)
+			},
 		},
 	}
 
@@ -89,9 +78,9 @@ func Test_UpdateCounterMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := Metric{repo: mockRepo}
 
-			mockRepo.EXPECT().UpdateCounterMetric(tt.metric.ID, *tt.metric.Delta).Return(tt.wantErr)
+			tt.prepare(tt.metric, tt.wantErr)
 
-			err := m.UpdateCounterMetric(tt.metric)
+			err := m.UpdateMetric(tt.metric)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("UpdateGaugeMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -32,10 +32,13 @@ func RunAgent() error {
 func RunServer() error {
 	inMemoryRepo := memory.NewMemStorage()
 	MetricServ := metric.New(inMemoryRepo)
-	h := handler.NewHandler(MetricServ)
+	h, err := handler.NewHandler(MetricServ)
+	if err != nil {
+		return fmt.Errorf("failed to create new handler: %w", err)
+	}
 
 	route := router.NewRouter(h)
 
-	fmt.Println("Listening on ", host)
+	fmt.Println("Listening on ", ":8080")
 	return http.ListenAndServe(":8080", route)
 }

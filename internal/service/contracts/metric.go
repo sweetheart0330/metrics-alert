@@ -3,6 +3,7 @@ package contracts
 import models "github.com/sweetheart0330/metrics-alert/internal/model"
 
 type MetricService interface {
-	UpdateGaugeMetric(metrics models.Metrics) error
-	UpdateCounterMetric(metrics models.Metrics) error
+	UpdateMetric(metrics models.Metrics) error
+	GetMetric(metric string) (models.Metrics, error)
+	GetAllMetrics() ([]models.Metrics, error)
 }

@@ -12,6 +12,7 @@ package mocks
 import (
 	reflect "reflect"
 
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -39,30 +40,60 @@ func (m *MockIRepository) EXPECT() *MockIRepositoryMockRecorder {
 	return m.recorder
 }
 
-// UpdateCounterMetric mocks base method.
-func (m *MockIRepository) UpdateCounterMetric(id string, val int64) error {
+// GetAllMetrics mocks base method.
+func (m *MockIRepository) GetAllMetrics() ([]models.Metrics, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCounterMetric", id, val)
+	ret := m.ctrl.Call(m, "GetAllMetrics")
+	ret0, _ := ret[0].([]models.Metrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllMetrics indicates an expected call of GetAllMetrics.
+func (mr *MockIRepositoryMockRecorder) GetAllMetrics() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllMetrics", reflect.TypeOf((*MockIRepository)(nil).GetAllMetrics))
+}
+
+// GetMetric mocks base method.
+func (m *MockIRepository) GetMetric(metricID string) (models.Metrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMetric", metricID)
+	ret0, _ := ret[0].(models.Metrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMetric indicates an expected call of GetMetric.
+func (mr *MockIRepositoryMockRecorder) GetMetric(metricID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetric", reflect.TypeOf((*MockIRepository)(nil).GetMetric), metricID)
+}
+
+// UpdateCounterMetric mocks base method.
+func (m *MockIRepository) UpdateCounterMetric(metric models.Metrics) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCounterMetric", metric)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateCounterMetric indicates an expected call of UpdateCounterMetric.
-func (mr *MockIRepositoryMockRecorder) UpdateCounterMetric(id, val any) *gomock.Call {
+func (mr *MockIRepositoryMockRecorder) UpdateCounterMetric(metric any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCounterMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateCounterMetric), id, val)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCounterMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateCounterMetric), metric)
 }
 
 // UpdateGaugeMetric mocks base method.
-func (m *MockIRepository) UpdateGaugeMetric(id string, val float64) error {
+func (m *MockIRepository) UpdateGaugeMetric(metric models.Metrics) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateGaugeMetric", id, val)
+	ret := m.ctrl.Call(m, "UpdateGaugeMetric", metric)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateGaugeMetric indicates an expected call of UpdateGaugeMetric.
-func (mr *MockIRepositoryMockRecorder) UpdateGaugeMetric(id, val any) *gomock.Call {
+func (mr *MockIRepositoryMockRecorder) UpdateGaugeMetric(metric any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGaugeMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateGaugeMetric), id, val)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGaugeMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateGaugeMetric), metric)
 }
