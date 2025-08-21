@@ -1,3 +1,13 @@
 package main
 
-func main() {}
+import (
+	"log"
+
+	"github.com/sweetheart0330/metrics-alert/internal/app"
+)
+
+func main() {
+	if err := app.RunAgent(); err != nil {
+		log.Fatal(err)
+	}
+}
