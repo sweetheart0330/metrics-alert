@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,10 +29,13 @@ func Test_StartAgent(t *testing.T) {
 	mockCl := mocks.NewMockIClient(ctrl)
 	mockCollector := mocks.NewMockMetricCollector(ctrl)
 
+	syncMap := sync.Map{}
+	syncMap.Store("test1", 13.4)
+	syncMap.Store("test2", 13.5)
 	type args struct {
 		ctx      context.Context
 		cancel   context.CancelFunc
-		gaugeMap map[string]*float64
+		gaugeMap *sync.Map
 		counter  model.Metrics
 	}
 	tests := []struct {
@@ -43,10 +47,7 @@ func Test_StartAgent(t *testing.T) {
 		{
 			name: "success",
 			args: args{
-				gaugeMap: map[string]*float64{
-					"test1": new(float64),
-					"test2": new(float64),
-				},
+				gaugeMap: &syncMap,
 				counter: model.Metrics{
 					ID:    "test-counter",
 					MType: model.Counter,
@@ -56,13 +57,16 @@ func Test_StartAgent(t *testing.T) {
 			wantErr: nil,
 			prepare: func(args args, err error) {
 				mockCollector.EXPECT().GetGauge().Return(args.gaugeMap)
-				for k, v := range args.gaugeMap {
+				args.gaugeMap.Range(func(k, v interface{}) bool {
+					fl := v.(float64)
 					mockCl.EXPECT().SendGaugeMetric(model.Metrics{
-						ID:    k,
+						ID:    k.(string),
 						MType: model.Gauge,
-						Value: v,
+						Value: &fl,
 					}).Return(nil)
-				}
+
+					return true
+				})
 
 				mockCollector.EXPECT().GetCounter().Return(args.counter)
 				mockCl.EXPECT().SendCounterMetric(args.counter).Return(nil)
@@ -73,10 +77,7 @@ func Test_StartAgent(t *testing.T) {
 		{
 			name: "err in send gauge",
 			args: args{
-				gaugeMap: map[string]*float64{
-					"test1": new(float64),
-					"test2": new(float64),
-				},
+				gaugeMap: &syncMap,
 			},
 			wantErr: errors.New("failed to send gauge request"),
 			prepare: func(args args, err error) {
@@ -87,10 +88,7 @@ func Test_StartAgent(t *testing.T) {
 		{
 			name: "failed to send counter",
 			args: args{
-				gaugeMap: map[string]*float64{
-					"test1": new(float64),
-					"test2": new(float64),
-				},
+				gaugeMap: &syncMap,
 				counter: model.Metrics{
 					ID:    "test-counter",
 					MType: model.Counter,
@@ -100,13 +98,16 @@ func Test_StartAgent(t *testing.T) {
 			wantErr: errors.New("failed to send counter request"),
 			prepare: func(args args, err error) {
 				mockCollector.EXPECT().GetGauge().Return(args.gaugeMap)
-				for k, v := range args.gaugeMap {
+				args.gaugeMap.Range(func(k, v interface{}) bool {
+					fl := v.(float64)
 					mockCl.EXPECT().SendGaugeMetric(model.Metrics{
-						ID:    k,
+						ID:    k.(string),
 						MType: model.Gauge,
-						Value: v,
+						Value: &fl,
 					}).Return(nil)
-				}
+
+					return true
+				})
 
 				mockCollector.EXPECT().GetCounter().Return(args.counter)
 				mockCl.EXPECT().SendCounterMetric(args.counter).Return(err)
@@ -116,7 +117,7 @@ func Test_StartAgent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ag := Agent{cl: mockCl, collect: mockCollector, reportInterval: 10 * time.Second}
+			ag := Agent{cl: mockCl, collect: mockCollector, Config: Config{ReportInterval: 1 * time.Second}}
 			tt.args.ctx, tt.args.cancel = context.WithCancel(context.Background())
 			tt.prepare(tt.args, tt.wantErr)
 

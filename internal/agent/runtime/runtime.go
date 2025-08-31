@@ -44,17 +44,19 @@ const (
 	PollCount = "PollCount"
 )
 
-type RuntimeMetrics struct {
-	gauge        map[string]*float64
-	mu           sync.RWMutex
-	counter      int64
-	pollInterval time.Duration
+type Config struct {
+	PollInterval time.Duration
+}
+type Metrics struct {
+	gauge   sync.Map
+	mu      sync.RWMutex
+	counter int64
+	Config
 }
 
-func NewRuntimeMetrics(ctx context.Context, pollInterval time.Duration) *RuntimeMetrics {
-	metric := &RuntimeMetrics{
-		gauge:        make(map[string]*float64),
-		pollInterval: pollInterval,
+func NewRuntimeMetrics(ctx context.Context, pollInterval time.Duration) *Metrics {
+	metric := &Metrics{
+		Config: Config{PollInterval: pollInterval},
 	}
 
 	go metric.startCollectMetrics(ctx)
@@ -62,14 +64,14 @@ func NewRuntimeMetrics(ctx context.Context, pollInterval time.Duration) *Runtime
 	return metric
 }
 
-func (r *RuntimeMetrics) GetGauge() map[string]*float64 {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *Metrics) GetGauge() *sync.Map {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	return r.gauge
+	return &r.gauge
 }
 
-func (r *RuntimeMetrics) GetCounter() models.Metrics {
+func (r *Metrics) GetCounter() models.Metrics {
 	return models.Metrics{
 		ID:    PollCount,
 		MType: models.Counter,
@@ -77,8 +79,8 @@ func (r *RuntimeMetrics) GetCounter() models.Metrics {
 	}
 }
 
-func (r *RuntimeMetrics) startCollectMetrics(ctx context.Context) {
-	t := time.NewTicker(r.pollInterval)
+func (r *Metrics) startCollectMetrics(ctx context.Context) {
+	t := time.NewTicker(r.PollInterval)
 	defer t.Stop()
 	for {
 		select {
@@ -90,47 +92,42 @@ func (r *RuntimeMetrics) startCollectMetrics(ctx context.Context) {
 	}
 }
 
-func (r *RuntimeMetrics) collectMetrics() map[string]*float64 {
+func (r *Metrics) collectMetrics() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	floatPtr := func(val float64) *float64 {
-		return &val
-	}
-
-	r.gauge[AllocKey] = floatPtr(float64(m.Alloc))
-	r.gauge[BuckHashSysKey] = floatPtr(float64(m.BuckHashSys))
-	r.gauge[FreesKey] = floatPtr(float64(m.Frees))
-	r.gauge[GCCPUFractionKey] = floatPtr(m.GCCPUFraction)
-	r.gauge[GCSysKey] = floatPtr(float64(m.GCSys))
-	r.gauge[HeapAllocKey] = floatPtr(float64(m.HeapAlloc))
-	r.gauge[HeapIdleKey] = floatPtr(float64(m.HeapIdle))
-	r.gauge[HeapInuseKey] = floatPtr(float64(m.HeapInuse))
-	r.gauge[HeapObjectsKey] = floatPtr(float64(m.HeapObjects))
-	r.gauge[HeapReleasedKey] = floatPtr(float64(m.HeapReleased))
-	r.gauge[HeapSysKey] = floatPtr(float64(m.HeapSys))
-	r.gauge[LastGCKey] = floatPtr(float64(m.LastGC))
-	r.gauge[LookupsKey] = floatPtr(float64(m.Lookups))
-	r.gauge[MCacheInuseKey] = floatPtr(float64(m.MCacheInuse))
-	r.gauge[MCacheSysKey] = floatPtr(float64(m.MCacheSys))
-	r.gauge[MSpanInuseKey] = floatPtr(float64(m.MSpanInuse))
-	r.gauge[MSpanSysKey] = floatPtr(float64(m.MSpanSys))
-	r.gauge[MallocsKey] = floatPtr(float64(m.Mallocs))
-	r.gauge[NextGCKey] = floatPtr(float64(m.NextGC))
-	r.gauge[NumForcedGCKey] = floatPtr(float64(m.NumForcedGC))
-	r.gauge[NumGCKey] = floatPtr(float64(m.NumGC))
-	r.gauge[OtherSysKey] = floatPtr(float64(m.OtherSys))
-	r.gauge[PauseTotalNsKey] = floatPtr(float64(m.PauseTotalNs))
-	r.gauge[StackInuseKey] = floatPtr(float64(m.StackInuse))
-	r.gauge[StackSysKey] = floatPtr(float64(m.StackSys))
-	r.gauge[SysKey] = floatPtr(float64(m.Sys))
-	r.gauge[TotalAllocKey] = floatPtr(float64(m.TotalAlloc))
+	r.gauge.Store(AllocKey, float64(m.Alloc))
+	r.gauge.Store(BuckHashSysKey, float64(m.BuckHashSys))
+	r.gauge.Store(FreesKey, float64(m.Frees))
+	r.gauge.Store(GCCPUFractionKey, m.GCCPUFraction)
+	r.gauge.Store(GCSysKey, float64(m.GCSys))
+	r.gauge.Store(HeapAllocKey, float64(m.HeapAlloc))
+	r.gauge.Store(HeapIdleKey, float64(m.HeapIdle))
+	r.gauge.Store(HeapInuseKey, float64(m.HeapInuse))
+	r.gauge.Store(HeapObjectsKey, float64(m.HeapObjects))
+	r.gauge.Store(HeapReleasedKey, float64(m.HeapReleased))
+	r.gauge.Store(HeapSysKey, float64(m.HeapSys))
+	r.gauge.Store(LastGCKey, float64(m.LastGC))
+	r.gauge.Store(LookupsKey, float64(m.Lookups))
+	r.gauge.Store(MCacheInuseKey, float64(m.MCacheInuse))
+	r.gauge.Store(MCacheSysKey, float64(m.MCacheSys))
+	r.gauge.Store(MSpanInuseKey, float64(m.MSpanInuse))
+	r.gauge.Store(MSpanSysKey, float64(m.MSpanSys))
+	r.gauge.Store(MallocsKey, float64(m.Mallocs))
+	r.gauge.Store(NextGCKey, float64(m.NextGC))
+	r.gauge.Store(NumForcedGCKey, float64(m.NumForcedGC))
+	r.gauge.Store(NumGCKey, float64(m.NumGC))
+	r.gauge.Store(OtherSysKey, float64(m.OtherSys))
+	r.gauge.Store(PauseTotalNsKey, float64(m.PauseTotalNs))
+	r.gauge.Store(StackInuseKey, float64(m.StackInuse))
+	r.gauge.Store(StackSysKey, float64(m.StackSys))
+	r.gauge.Store(SysKey, float64(m.Sys))
+	r.gauge.Store(TotalAllocKey, float64(m.TotalAlloc))
 
 	r.counter++
 
 	fmt.Println("gauge collected")
-	return r.gauge
 }

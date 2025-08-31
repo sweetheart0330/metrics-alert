@@ -81,6 +81,7 @@ func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, er
 
 	return resp, nil
 }
+
 func formURL(url string, m models.Metrics, val string) string {
 	builder := strings.Builder{}
 	builder.WriteString(url)

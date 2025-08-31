@@ -10,22 +10,25 @@ import (
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
+type Config struct {
+	ReportInterval time.Duration
+}
 type Agent struct {
-	cl             client.IClient
-	collect        agent.MetricCollector
-	reportInterval time.Duration
+	cl      client.IClient
+	collect agent.MetricCollector
+	Config
 }
 
 func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval time.Duration) *Agent {
 	return &Agent{
-		cl:             cl,
-		collect:        agent,
-		reportInterval: reportInterval,
+		cl:      cl,
+		collect: agent,
+		Config:  Config{ReportInterval: reportInterval},
 	}
 }
 
 func (a Agent) StartAgent(ctx context.Context) error {
-	tick := time.NewTicker(a.reportInterval)
+	tick := time.NewTicker(a.ReportInterval)
 	defer tick.Stop()
 
 	for {
@@ -43,21 +46,29 @@ func (a Agent) StartAgent(ctx context.Context) error {
 	}
 }
 
-func (a Agent) sendMetrics() error {
+func (a Agent) sendMetrics() (err error) {
 	gaugeMap := a.collect.GetGauge()
-	for k, v := range gaugeMap {
-		err := a.cl.SendGaugeMetric(models.Metrics{
-			ID:    k,
+
+	gaugeMap.Range(func(key, value interface{}) bool {
+		valFl := value.(float64)
+		err = a.cl.SendGaugeMetric(models.Metrics{
+			ID:    key.(string),
 			MType: models.Gauge,
-			Value: v,
+			Value: &valFl,
 		})
 		if err != nil {
-			return fmt.Errorf("collect send gauge metric failed: %w", err)
+			return false
 		}
+
+		return true
+	})
+
+	if err != nil {
+		return fmt.Errorf("collect send gauge metric failed: %w", err)
 	}
 
 	counter := a.collect.GetCounter()
-	err := a.cl.SendCounterMetric(counter)
+	err = a.cl.SendCounterMetric(counter)
 	if err != nil {
 		return fmt.Errorf("collect send counter metric failed: %w", err)
 	}

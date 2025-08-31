@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -18,10 +17,10 @@ import (
 func RunAgent(ctx context.Context) error {
 	opt := getAgentOptions()
 
-	clCfg := httpCl.Config{Host: "http://" + opt.Address}
+	clCfg := httpCl.Config{Host: "http://" + opt.Client.Host}
 	cl := httpCl.NewClient(clCfg)
-	ag := runtime.NewRuntimeMetrics(ctx, time.Duration(opt.PollInterval)*time.Second)
-	serv := servAgent.NewAgent(cl, ag, time.Duration(opt.ReportInterval)*time.Second)
+	ag := runtime.NewRuntimeMetrics(ctx, opt.MetricsCollector.PollInterval)
+	serv := servAgent.NewAgent(cl, ag, opt.Agent.ReportInterval)
 
 	return serv.StartAgent(ctx)
 }

@@ -11,6 +11,7 @@ package mocks
 
 import (
 	reflect "reflect"
+	sync "sync"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	gomock "go.uber.org/mock/gomock"
@@ -55,10 +56,10 @@ func (mr *MockMetricCollectorMockRecorder) GetCounter() *gomock.Call {
 }
 
 // GetGauge mocks base method.
-func (m *MockMetricCollector) GetGauge() map[string]*float64 {
+func (m *MockMetricCollector) GetGauge() *sync.Map {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGauge")
-	ret0, _ := ret[0].(map[string]*float64)
+	ret0, _ := ret[0].(*sync.Map)
 	return ret0
 }
 

@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -11,14 +11,17 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	parentCtx := context.Background()
+	ctx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	if err := app.RunAgent(ctx); err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		if err := app.RunAgent(parentCtx); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
-	<-ch
-	cancel()
+	<-ctx.Done()
+	stop()
+
+	fmt.Println("Application stopped")
 }
