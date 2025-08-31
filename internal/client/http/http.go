@@ -14,7 +14,7 @@ const (
 )
 
 type Config struct {
-	Host string
+	Host string `env:"ADDRESS"`
 }
 type Client struct {
 	cfg Config

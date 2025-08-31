@@ -15,7 +15,10 @@ import (
 )
 
 func RunAgent(ctx context.Context) error {
-	opt := getAgentOptions()
+	opt, err := getAgentOptions()
+	if err != nil {
+		return err
+	}
 
 	clCfg := httpCl.Config{Host: "http://" + opt.Client.Host}
 	cl := httpCl.NewClient(clCfg)

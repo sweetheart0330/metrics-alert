@@ -45,7 +45,7 @@ const (
 )
 
 type Config struct {
-	PollInterval time.Duration
+	PollInterval time.Duration `env:"POLL_INTERVAL"`
 }
 type Metrics struct {
 	gauge   sync.Map

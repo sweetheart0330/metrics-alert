@@ -11,7 +11,7 @@ import (
 )
 
 type Config struct {
-	ReportInterval time.Duration
+	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
 }
 type Agent struct {
 	cl      client.IClient
