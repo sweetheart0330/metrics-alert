@@ -56,11 +56,8 @@ func (a Agent) sendMetrics() (err error) {
 			MType: models.Gauge,
 			Value: &valFl,
 		})
-		if err != nil {
-			return false
-		}
 
-		return true
+		return err == nil
 	})
 
 	if err != nil {
