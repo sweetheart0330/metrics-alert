@@ -15,22 +15,21 @@ import (
 )
 
 func RunAgent(ctx context.Context) error {
-	opt, err := getAgentOptions()
+	opt, err := getAgentFlags()
 	if err != nil {
 		return err
 	}
 
-	clCfg := httpCl.Config{Host: "http://" + opt.Client.Host}
+	clCfg := httpCl.Config{Host: "http://" + opt.Host}
 	cl := httpCl.NewClient(clCfg)
-	ag := runtime.NewRuntimeMetrics(ctx, opt.MetricsCollector.PollInterval)
-	serv := servAgent.NewAgent(cl, ag, opt.Agent.ReportInterval)
+	ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval)
+	serv := servAgent.NewAgent(cl, ag, opt.ReportInterval)
 
 	return serv.StartAgent(ctx)
 }
 
 func RunServer() error {
-
-	addr := getServerAddress()
+	addr := getServerFlags()
 	inMemoryRepo := memory.NewMemStorage()
 	MetricServ := metric.New(inMemoryRepo)
 	h, err := handler.NewHandler(MetricServ)

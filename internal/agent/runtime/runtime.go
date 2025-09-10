@@ -45,18 +45,18 @@ const (
 )
 
 type Config struct {
-	PollInterval time.Duration `env:"POLL_INTERVAL"`
+	PollInterval time.Duration
 }
 type Metrics struct {
-	gauge   sync.Map
-	mu      sync.RWMutex
-	counter int64
-	Config
+	gauge        sync.Map
+	mu           sync.RWMutex
+	counter      int64
+	pollInterval time.Duration
 }
 
-func NewRuntimeMetrics(ctx context.Context, pollInterval time.Duration) *Metrics {
+func NewRuntimeMetrics(ctx context.Context, pollInterval int) *Metrics {
 	metric := &Metrics{
-		Config: Config{PollInterval: pollInterval},
+		pollInterval: time.Duration(pollInterval) * time.Second,
 	}
 
 	go metric.startCollectMetrics(ctx)
@@ -80,7 +80,7 @@ func (r *Metrics) GetCounter() models.Metrics {
 }
 
 func (r *Metrics) startCollectMetrics(ctx context.Context) {
-	t := time.NewTicker(r.PollInterval)
+	t := time.NewTicker(r.pollInterval)
 	defer t.Stop()
 	for {
 		select {
