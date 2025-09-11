@@ -8,6 +8,6 @@ import (
 
 func main() {
 	if err := app.RunServer(); err != nil {
-		log.Fatal(err)
+		log.Printf("server error, err: %v, exit", err)
 	}
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"flag"
+	"fmt"
 	"github.com/caarlos0/env/v6"
 )
 
@@ -14,7 +15,7 @@ type StartFlags struct {
 func getAgentFlags() (fl StartFlags, err error) {
 	err = env.Parse(&fl)
 	if err != nil {
-		return StartFlags{}, err
+		return StartFlags{}, fmt.Errorf("failed to parse agent flags, err: %w", err)
 	}
 
 	if len(fl.Host) == 0 {
@@ -34,9 +35,17 @@ func getAgentFlags() (fl StartFlags, err error) {
 	return fl, nil
 }
 
-func getServerFlags() (fl string) {
-	flag.StringVar(&fl, "a", "localhost:8080", "address and port to run server")
-	flag.Parse()
+func getServerFlags() (host string, err error) {
+	fl := StartFlags{}
+	err = env.Parse(&fl)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse server flags, err: %w", err)
+	}
 
-	return fl
+	if len(fl.Host) == 0 {
+		flag.StringVar(&fl.Host, "a", "localhost:8080", "address and port to send requests")
+		flag.Parse()
+	}
+
+	return fl.Host, nil
 }

@@ -29,7 +29,11 @@ func RunAgent(ctx context.Context) error {
 }
 
 func RunServer() error {
-	addr := getServerFlags()
+	addr, err := getServerFlags()
+	if err != nil {
+		return err
+	}
+
 	inMemoryRepo := memory.NewMemStorage()
 	MetricServ := metric.New(inMemoryRepo)
 	h, err := handler.NewHandler(MetricServ)
