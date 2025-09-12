@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"go.uber.org/zap"
 	"html/template"
 	"path/filepath"
 
@@ -59,9 +60,10 @@ var metricHTML = `
 type Handler struct {
 	metric   contracts.MetricService
 	template *template.Template
+	log      zap.SugaredLogger
 }
 
-func NewHandler(metric contracts.MetricService) (Handler, error) {
+func NewHandler(metric contracts.MetricService, log zap.SugaredLogger) (Handler, error) {
 	tmplPath := filepath.Join("internal", "handler", "template", "metrics.html")
 	tmpl, err := template.
 		New("metrics.html").
@@ -71,5 +73,5 @@ func NewHandler(metric contracts.MetricService) (Handler, error) {
 		return Handler{}, err
 	}
 
-	return Handler{metric: metric, template: tmpl}, nil
+	return Handler{metric: metric, template: tmpl, log: log}, nil
 }

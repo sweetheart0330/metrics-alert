@@ -12,6 +12,7 @@ import (
 	"github.com/sweetheart0330/metrics-alert/internal/router"
 	servAgent "github.com/sweetheart0330/metrics-alert/internal/service/agent"
 	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
+	"go.uber.org/zap"
 )
 
 func RunAgent(ctx context.Context) error {
@@ -31,18 +32,27 @@ func RunAgent(ctx context.Context) error {
 func RunServer() error {
 	addr, err := getServerFlags()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get server flags, err: %w", err)
 	}
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("failed to init logger, err: %w", err)
+	}
+
+	defer logger.Sync()
+	sugar := *logger.Sugar()
 
 	inMemoryRepo := memory.NewMemStorage()
 	MetricServ := metric.New(inMemoryRepo)
-	h, err := handler.NewHandler(MetricServ)
+	h, err := handler.NewHandler(MetricServ, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to create new handler: %w", err)
 	}
 
 	route := router.NewRouter(h)
 
-	fmt.Println("Listening on ", addr)
+	sugar.Infow("Starting server", "addr", addr)
+
 	return http.ListenAndServe(addr, route)
 }

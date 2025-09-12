@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -16,8 +15,14 @@ func (h Handler) MiddlewareLogger() func(http.Handler) http.Handler {
 			t1 := time.Now()
 			reqID := middleware.GetReqID(r.Context())
 			defer func() {
-				fmt.Printf("REQUEST COMPLETED\nreqID: %s, method: %s, path: %s, status: %d, duration: %v\n\n",
-					reqID, r.Method, r.URL.Path, ww.Status(), time.Since(t1).String())
+				h.log.Infow(
+					"REQUEST COMPLETED",
+					"reqID", reqID,
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.Status(),
+					"duration", time.Since(t1).String(),
+				)
 			}()
 
 			next.ServeHTTP(ww, r)
