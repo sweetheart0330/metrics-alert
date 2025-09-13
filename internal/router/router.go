@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
@@ -18,17 +17,21 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	r.Use(h.CompressHandle)
 	r.Use(h.DecompressHandle)
 
-	r.Post("/update", h.UpdateJSONMetric)
-	r.Post(
-		fmt.Sprintf("/update/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
-		h.UpdateMetric,
-	)
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", h.UpdateJSONMetric)
+		r.Post(
+			fmt.Sprintf("/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
+			h.UpdateMetric,
+		)
+	})
 
-	r.Get("/value", h.GetJSONMetric)
-	r.Get(
-		fmt.Sprintf("/value/{%s}/{%s}", models.TypeParam, models.NameParam),
-		h.GetMetric,
-	)
+	r.Route("/value", func(r chi.Router) {
+		r.Get("/", h.GetJSONMetric)
+		r.Get(
+			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),
+			h.GetMetric,
+		)
+	})
 
 	r.Get("/", h.GetAllMetrics)
 
