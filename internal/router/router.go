@@ -10,27 +10,30 @@ import (
 )
 
 func NewRouter(h handler.Handler) *chi.Mux {
-	r := chi.NewRouter()
+	mux := chi.NewRouter()
 
-	r.Use(middleware.Recoverer)
-	r.Use(h.MiddlewareLogger())
-	r.Use(h.CompressHandle)
-	r.Use(h.DecompressHandle)
+	mux.Use(middleware.Recoverer)
+	mux.Use(h.MiddlewareLogger())
+	mux.Use(h.CompressHandle)
+	mux.Use(h.DecompressHandle)
 
-	// Обновление метрик
-	r.Post("/update/", h.UpdateJSONMetric)
-	r.Post(
-		fmt.Sprintf("/update/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
-		h.UpdateMetric,
-	)
+	mux.Route("/update/", func(r chi.Router) {
+		mux.Post("/", h.UpdateJSONMetric)
+		mux.Post(
+			fmt.Sprintf("/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
+			h.UpdateMetric,
+		)
+	})
 
-	r.Post("/value/", h.GetJSONMetric)
-	r.Get(
-		fmt.Sprintf("/value/{%s}/{%s}", models.TypeParam, models.NameParam),
-		h.GetMetric,
-	)
+	mux.Route("/value/", func(r chi.Router) {
+		r.Post("/", h.GetJSONMetric)
+		r.Get(
+			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),
+			h.GetMetric,
+		)
+	})
 
-	r.Get("/", h.GetAllMetrics)
+	mux.Get("/", h.GetAllMetrics)
 
-	return r
+	return mux
 }
