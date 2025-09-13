@@ -71,7 +71,6 @@ func (h Handler) MiddlewareLogger() func(http.Handler) http.Handler {
 
 			t1 := time.Now()
 			reqID := middleware.GetReqID(r.Context())
-			body, _ := io.ReadAll(r.Body)
 			defer func() {
 				h.log.Infow(
 					"REQUEST COMPLETED",
@@ -80,7 +79,6 @@ func (h Handler) MiddlewareLogger() func(http.Handler) http.Handler {
 					"path", r.URL.Path,
 					"status", ww.Status(),
 					"duration", time.Since(t1).String(),
-					"body", string(body),
 				)
 			}()
 
