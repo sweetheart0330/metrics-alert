@@ -1,9 +1,10 @@
 package http
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
@@ -30,9 +31,9 @@ func (c Client) SendGaugeMetric(m models.Metrics) error {
 		return fmt.Errorf("no value in metric")
 	}
 
-	strVal := strconv.FormatFloat(*m.Value, 'f', -1, 64)
+	//strVal := strconv.FormatFloat(*m.Value, 'f', -1, 64)
 
-	resp, err := c.sendRequest(m, strVal)
+	resp, err := c.sendJsonRequest(m)
 	if err != nil {
 		return fmt.Errorf("failed to send gauge metric, err: %w", err)
 	}
@@ -50,9 +51,9 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 		return fmt.Errorf("no delta in metric")
 	}
 
-	strVal := strconv.FormatInt(*m.Delta, 10)
+	//strVal := strconv.FormatInt(*m.Delta, 10)
 
-	resp, err := c.sendRequest(m, strVal)
+	resp, err := c.sendJsonRequest(m)
 	if err != nil {
 		return fmt.Errorf("failed to send counter metric, err: %w", err)
 	}
@@ -63,6 +64,24 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 	}
 
 	return nil
+}
+
+func (c Client) sendJsonRequest(metric models.Metrics) (*http.Response, error) {
+	reqURL := formJsonURL(c.cfg.Host)
+	jsonMetric, err := json.Marshal(&metric)
+	req, err := http.NewRequest(http.MethodPost, reqURL, bytes.NewReader(jsonMetric))
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("could not send request: %w", err)
+	}
+
+	return resp, nil
 }
 
 func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, error) {
@@ -80,6 +99,14 @@ func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, er
 	}
 
 	return resp, nil
+}
+
+func formJsonURL(url string) string {
+	builder := strings.Builder{}
+	builder.WriteString(url)
+	builder.WriteString(updMetricPath)
+
+	return builder.String()
 }
 
 func formURL(url string, m models.Metrics, val string) string {

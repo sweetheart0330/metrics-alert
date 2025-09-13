@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -19,6 +21,61 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.metric.UpdateMetric(*metric)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h Handler) UpdateJsonMetric(w http.ResponseWriter, r *http.Request) {
+	metric, err := h.getMetricFromBody(r)
+	if err != nil {
+		h.log.Errorf("failed to get body, err: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	err = h.metric.UpdateMetric(*metric)
+	if err != nil {
+		h.log.Errorf("failed to update metric, err: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h Handler) GetJsonMetric(w http.ResponseWriter, r *http.Request) {
+	metric, err := h.getMetricFromBody(r)
+	if err != nil {
+		h.log.Errorf("failed to get body, err: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	resp, err := h.metric.GetMetric(metric.ID)
+	if err != nil {
+		if errors.Is(err, servMetric.ErrMetricNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonMetric, err := json.Marshal(resp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(jsonMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -146,4 +203,22 @@ var funcMap = template.FuncMap{
 	"hasValue": func(p interface{}) bool {
 		return p != nil
 	},
+}
+
+func (h Handler) getMetricFromBody(r *http.Request) (*models.Metrics, error) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body, err: %w", err)
+	}
+
+	defer r.Body.Close()
+
+	var metric models.Metrics
+	fmt.Println("body: ", body)
+	err = json.Unmarshal(body, &metric)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal body to Metrics, err: %w", err)
+	}
+
+	return &metric, nil
 }

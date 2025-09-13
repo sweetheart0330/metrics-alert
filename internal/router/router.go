@@ -16,6 +16,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Use(h.MiddlewareLogger())
 
+	r.Post("/update", h.UpdateJsonMetric)
 	r.Post(
 		fmt.Sprintf("/update/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
 		h.UpdateMetric,
