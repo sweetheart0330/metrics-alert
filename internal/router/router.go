@@ -24,7 +24,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 		h.UpdateMetric,
 	)
 
-	r.Get("/value/", h.GetJSONMetric)
+	r.Post("/value/", h.GetJSONMetric)
 	r.Get(
 		fmt.Sprintf("/value/{%s}/{%s}", models.TypeParam, models.NameParam),
 		h.GetMetric,
