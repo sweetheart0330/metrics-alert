@@ -69,6 +69,10 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
 	reqURL := formJSONURL(c.cfg.Host)
 	jsonMetric, err := json.Marshal(&metric)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create json body, err: %w", err)
+	}
+
 	req, err := http.NewRequest(http.MethodPost, reqURL, bytes.NewReader(jsonMetric))
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %w", err)
