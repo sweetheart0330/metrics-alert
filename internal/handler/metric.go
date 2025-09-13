@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 	"html/template"
 	"io"
 	"net/http"
 	"strconv"
-
-	models "github.com/sweetheart0330/metrics-alert/internal/model"
-	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 )
 
 func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +29,7 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
-	metric, err := h.getMetricFromBody(r)
+	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -50,7 +49,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
-	metric, err := h.getMetricFromBody(r)
+	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -205,7 +204,7 @@ var funcMap = template.FuncMap{
 	},
 }
 
-func (h Handler) getMetricFromBody(r *http.Request) (*models.Metrics, error) {
+func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*models.Metrics, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read body, err: %w", err)
@@ -214,10 +213,9 @@ func (h Handler) getMetricFromBody(r *http.Request) (*models.Metrics, error) {
 	defer r.Body.Close()
 
 	var metric models.Metrics
-	fmt.Println("body: ", body)
 	err = json.Unmarshal(body, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal body to Metrics, err: %w", err)
+		return nil, fmt.Errorf("failed to decode body, err: %w", err)
 	}
 
 	return &metric, nil

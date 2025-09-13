@@ -2,8 +2,10 @@ package http
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -73,11 +75,17 @@ func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
 		return nil, fmt.Errorf("failed to create json body, err: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, reqURL, bytes.NewReader(jsonMetric))
+	body, err := compressBody(jsonMetric)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress json body, err: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
+	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.cl.Do(req)
@@ -125,4 +133,16 @@ func formURL(url string, m models.Metrics, val string) string {
 	builder.WriteString(val)
 
 	return builder.String()
+}
+
+func compressBody(body []byte) (io.Reader, error) {
+	var buf bytes.Buffer
+	gzWriter := gzip.NewWriter(&buf)
+	_, err := gzWriter.Write(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress json body, err: %w", err)
+	}
+	defer gzWriter.Close()
+
+	return &buf, nil
 }

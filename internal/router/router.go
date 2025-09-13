@@ -15,6 +15,8 @@ func NewRouter(h handler.Handler) *chi.Mux {
 
 	r.Use(middleware.Recoverer)
 	r.Use(h.MiddlewareLogger())
+	r.Use(h.CompressHandle)
+	r.Use(h.DecompressHandle)
 
 	r.Post("/update", h.UpdateJSONMetric)
 	r.Post(
