@@ -17,16 +17,17 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	r.Use(h.CompressHandle)
 	r.Use(h.DecompressHandle)
 
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/", h.UpdateJSONMetric)
-		r.Post(
-			fmt.Sprintf("/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
-			h.UpdateMetric,
-		)
-	})
+	// Обновление метрик
+	r.Post("/update/", h.UpdateJSONMetric)
+	r.Post(
+		fmt.Sprintf("/update/{%s}/{%s}/{%s}", models.TypeParam, models.NameParam, models.ValueParam),
+		h.UpdateMetric,
+	)
 
+	// Получение метрик - добавляем POST для JSON запросов
 	r.Route("/value", func(r chi.Router) {
 		r.Get("/", h.GetJSONMetric)
+		r.Post("/", h.GetJSONMetric) // Добавляем POST для JSON запросов получения метрик
 		r.Get(
 			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),
 			h.GetMetric,
