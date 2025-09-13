@@ -24,15 +24,11 @@ func NewRouter(h handler.Handler) *chi.Mux {
 		h.UpdateMetric,
 	)
 
-	// Получение метрик - добавляем POST для JSON запросов
-	r.Route("/value", func(r chi.Router) {
-		r.Get("/", h.GetJSONMetric)
-		r.Post("/", h.GetJSONMetric) // Добавляем POST для JSON запросов получения метрик
-		r.Get(
-			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),
-			h.GetMetric,
-		)
-	})
+	r.Get("/value/", h.GetJSONMetric)
+	r.Get(
+		fmt.Sprintf("/value/{%s}/{%s}", models.TypeParam, models.NameParam),
+		h.GetMetric,
+	)
 
 	r.Get("/", h.GetAllMetrics)
 

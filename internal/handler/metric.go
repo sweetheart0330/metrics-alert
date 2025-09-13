@@ -32,7 +32,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
@@ -52,7 +52,7 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
