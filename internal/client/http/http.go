@@ -33,7 +33,7 @@ func (c Client) SendGaugeMetric(m models.Metrics) error {
 
 	//strVal := strconv.FormatFloat(*m.Value, 'f', -1, 64)
 
-	resp, err := c.sendJsonRequest(m)
+	resp, err := c.sendJSONRequest(m)
 	if err != nil {
 		return fmt.Errorf("failed to send gauge metric, err: %w", err)
 	}
@@ -53,7 +53,7 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 
 	//strVal := strconv.FormatInt(*m.Delta, 10)
 
-	resp, err := c.sendJsonRequest(m)
+	resp, err := c.sendJSONRequest(m)
 	if err != nil {
 		return fmt.Errorf("failed to send counter metric, err: %w", err)
 	}
@@ -66,8 +66,8 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 	return nil
 }
 
-func (c Client) sendJsonRequest(metric models.Metrics) (*http.Response, error) {
-	reqURL := formJsonURL(c.cfg.Host)
+func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
+	reqURL := formJSONURL(c.cfg.Host)
 	jsonMetric, err := json.Marshal(&metric)
 	req, err := http.NewRequest(http.MethodPost, reqURL, bytes.NewReader(jsonMetric))
 	if err != nil {
@@ -101,7 +101,7 @@ func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, er
 	return resp, nil
 }
 
-func formJsonURL(url string) string {
+func formJSONURL(url string) string {
 	builder := strings.Builder{}
 	builder.WriteString(url)
 	builder.WriteString(updMetricPath)

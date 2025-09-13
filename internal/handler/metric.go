@@ -29,7 +29,7 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h Handler) UpdateJsonMetric(w http.ResponseWriter, r *http.Request) {
+func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metric, err := h.getMetricFromBody(r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
@@ -49,7 +49,7 @@ func (h Handler) UpdateJsonMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h Handler) GetJsonMetric(w http.ResponseWriter, r *http.Request) {
+func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	metric, err := h.getMetricFromBody(r)
 	if err != nil {
 		h.log.Errorf("failed to get body, err: %v", err)
