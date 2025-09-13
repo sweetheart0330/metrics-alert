@@ -45,6 +45,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set(compressHeader, compressFormat)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -80,6 +81,7 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set(compressHeader, compressFormat)
 	w.WriteHeader(http.StatusOK)
 }
 
