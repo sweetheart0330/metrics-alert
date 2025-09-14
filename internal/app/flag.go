@@ -50,9 +50,7 @@ func getServerFlags() (host StartFlags, err error) {
 	}
 
 	if fl.StoreInterval == nil {
-		var storeTime uint
-		flag.UintVar(&storeTime, "i", 300, "frequency of storing metrics")
-		fl.StoreInterval = &storeTime
+		fl.StoreInterval = flag.Uint("i", 300, "frequency of storing metrics")
 	}
 
 	if len(fl.FileStoragePath) == 0 {
