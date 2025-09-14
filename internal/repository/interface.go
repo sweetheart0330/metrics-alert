@@ -11,3 +11,8 @@ type IRepository interface {
 	GetMetric(metricID string) (models.Metrics, error)
 	GetAllMetrics() ([]models.Metrics, error)
 }
+
+type FileSaver interface {
+	WriteMetrics(metrics []models.Metrics) error
+	UploadMetrics() ([]models.Metrics, error)
+}

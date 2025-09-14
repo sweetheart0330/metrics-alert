@@ -7,9 +7,12 @@ import (
 )
 
 type StartFlags struct {
-	Host           string `env:"ADDRESS"`
-	ReportInterval int    `env:"REPORT_INTERVAL"`
-	PollInterval   int    `env:"POLL_INTERVAL"`
+	Host            string `env:"ADDRESS"`
+	ReportInterval  uint   `env:"REPORT_INTERVAL"`
+	PollInterval    uint   `env:"POLL_INTERVAL"`
+	StoreInterval   *uint  `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func getAgentFlags() (fl StartFlags, err error) {
@@ -23,11 +26,11 @@ func getAgentFlags() (fl StartFlags, err error) {
 	}
 
 	if fl.ReportInterval == 0 {
-		flag.IntVar(&fl.ReportInterval, "r", 10, "interval between sending requests")
+		flag.UintVar(&fl.ReportInterval, "r", 10, "interval between sending requests")
 	}
 
 	if fl.PollInterval == 0 {
-		flag.IntVar(&fl.PollInterval, "p", 2, "interval between collecting metrics")
+		flag.UintVar(&fl.PollInterval, "p", 2, "interval between collecting metrics")
 	}
 
 	flag.Parse()
@@ -35,11 +38,11 @@ func getAgentFlags() (fl StartFlags, err error) {
 	return fl, nil
 }
 
-func getServerFlags() (host string, err error) {
+func getServerFlags() (host StartFlags, err error) {
 	fl := StartFlags{}
 	err = env.Parse(&fl)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse server flags, err: %w", err)
+		return StartFlags{}, fmt.Errorf("failed to parse server flags, err: %w", err)
 	}
 
 	if len(fl.Host) == 0 {
@@ -47,5 +50,19 @@ func getServerFlags() (host string, err error) {
 		flag.Parse()
 	}
 
-	return fl.Host, nil
+	if fl.StoreInterval == nil {
+		var storeTime uint
+		flag.UintVar(&storeTime, "i", 300, "frequency of storing metrics")
+		fl.StoreInterval = &storeTime
+	}
+
+	if len(fl.FileStoragePath) == 0 {
+		flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
+	}
+
+	if fl.Restore == false {
+		flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
+	}
+
+	return fl, nil
 }

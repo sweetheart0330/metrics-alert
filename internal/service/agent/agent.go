@@ -19,7 +19,7 @@ type Agent struct {
 	Config
 }
 
-func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval int) *Agent {
+func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval uint) *Agent {
 	return &Agent{
 		cl:      cl,
 		collect: agent,

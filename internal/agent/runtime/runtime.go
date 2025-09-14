@@ -54,7 +54,7 @@ type Metrics struct {
 	pollInterval time.Duration
 }
 
-func NewRuntimeMetrics(ctx context.Context, pollInterval int) *Metrics {
+func NewRuntimeMetrics(ctx context.Context, pollInterval uint) *Metrics {
 	metric := &Metrics{
 		pollInterval: time.Duration(pollInterval) * time.Second,
 	}

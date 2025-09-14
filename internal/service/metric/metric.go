@@ -1,10 +1,13 @@
 package metric
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"slices"
 	"strings"
+	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"github.com/sweetheart0330/metrics-alert/internal/repository"
@@ -16,14 +19,49 @@ var (
 )
 
 type Metric struct {
-	repo repository.IRepository
+	repo          repository.IRepository
+	fileStorage   repository.FileSaver
+	log           zap.SugaredLogger
+	storeInterval uint
 }
 
-func New(repo repository.IRepository) *Metric {
-	return &Metric{repo: repo}
+func New(ctx context.Context, repo repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, log zap.SugaredLogger) *Metric {
+	metric := &Metric{
+		repo:          repo,
+		fileStorage:   fileStorage,
+		storeInterval: storeInterval,
+		log:           log,
+	}
+
+	if storeInterval > 0 {
+		go metric.saveInPeriod(ctx)
+	}
+
+	return metric
+}
+
+func (m *Metric) saveInPeriod(ctx context.Context) {
+	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			err := m.saveToFile()
+			if err != nil {
+				m.log.Errorw("failed to save to file", "error", err)
+			}
+		}
+	}
 }
 
 func (m *Metric) UpdateMetric(metrics models.Metrics) error {
+	err := m.saveToFile()
+	if err != nil {
+		return fmt.Errorf("failed to save to file, err: %w", err)
+	}
+
 	switch metrics.MType {
 	case models.Counter:
 		return m.repo.UpdateCounterMetric(metrics)
@@ -70,4 +108,19 @@ func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
 	}
 
 	return metrics, nil
+}
+
+func (m *Metric) saveToFile() error {
+	if m.storeInterval == 0 {
+		metrics, err := m.repo.GetAllMetrics()
+		if err != nil {
+			return fmt.Errorf("failed to get metrics, err: %w", err)
+		}
+		err = m.fileStorage.WriteMetrics(metrics)
+		if err != nil {
+			return fmt.Errorf("failed to write metrics, err: %w", err)
+		}
+	}
+
+	return nil
 }

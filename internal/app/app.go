@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"net/http"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
@@ -30,7 +31,8 @@ func RunAgent(ctx context.Context) error {
 }
 
 func RunServer() error {
-	addr, err := getServerFlags()
+	ctx := context.Background()
+	srvCfg, err := getServerFlags()
 	if err != nil {
 		return fmt.Errorf("failed to get server flags, err: %w", err)
 	}
@@ -42,9 +44,13 @@ func RunServer() error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
+	fileStorage, err := filestore.NewFileStorage(srvCfg.FileStoragePath)
+	if err != nil {
+		return fmt.Errorf("failed to init file storage, err: %w", err)
+	}
 
 	inMemoryRepo := memory.NewMemStorage()
-	MetricServ := metric.New(inMemoryRepo)
+	MetricServ := metric.New(ctx, inMemoryRepo, fileStorage, *srvCfg.StoreInterval, sugar)
 	h, err := handler.NewHandler(MetricServ, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to create new handler: %w", err)
@@ -52,7 +58,7 @@ func RunServer() error {
 
 	route := router.NewRouter(h)
 
-	sugar.Infow("Starting server", "addr", addr)
+	sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
 
-	return http.ListenAndServe(addr, route)
+	return http.ListenAndServe(srvCfg.Host, route)
 }
