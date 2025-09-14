@@ -47,7 +47,6 @@ func getServerFlags() (host StartFlags, err error) {
 
 	if len(fl.Host) == 0 {
 		flag.StringVar(&fl.Host, "a", "localhost:8080", "address and port to send requests")
-		flag.Parse()
 	}
 
 	if fl.StoreInterval == nil {
@@ -63,6 +62,8 @@ func getServerFlags() (host StartFlags, err error) {
 	if fl.Restore == false {
 		flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
 	}
+
+	flag.Parse()
 
 	return fl, nil
 }

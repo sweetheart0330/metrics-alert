@@ -34,7 +34,7 @@ func New(ctx context.Context, repo repository.IRepository, fileStorage repositor
 	}
 
 	if storeInterval > 0 {
-		go metric.saveInPeriod(ctx)
+		//go metric.saveInPeriod(ctx)
 	}
 
 	return metric
@@ -46,13 +46,13 @@ func (m *Metric) saveInPeriod(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			t.Stop()
 			return
 		case <-t.C:
 			err := m.saveToFile()
 			if err != nil {
 				m.log.Errorw("failed to save to file", "error", err)
 			}
-
 			m.log.Info("saved metrics to file")
 		}
 	}
@@ -83,12 +83,12 @@ func (m *Metric) GetMetric(metric string) (models.Metrics, error) {
 	switch respMetric.MType {
 	case models.Counter:
 		if respMetric.Delta == nil {
-			fmt.Println("failed to get counter, err: ", err)
+			m.log.Errorw("failed to get counter", "error", err)
 			return models.Metrics{}, fmt.Errorf("counter value is nil")
 		}
 	case models.Gauge:
 		if respMetric.Value == nil {
-			fmt.Println("failed to get gauge, err: ", err)
+			m.log.Errorw("failed to get gauge", "error", err)
 			return models.Metrics{}, fmt.Errorf("gauge value is nil")
 		}
 	}
