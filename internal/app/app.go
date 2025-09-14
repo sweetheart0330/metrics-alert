@@ -30,8 +30,7 @@ func RunAgent(ctx context.Context) error {
 	return serv.StartAgent(ctx)
 }
 
-func RunServer() error {
-	ctx := context.Background()
+func RunServer(ctx context.Context) error {
 	srvCfg, err := getServerFlags()
 	if err != nil {
 		return fmt.Errorf("failed to get server flags, err: %w", err)

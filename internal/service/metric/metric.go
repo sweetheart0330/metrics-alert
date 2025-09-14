@@ -52,6 +52,8 @@ func (m *Metric) saveInPeriod(ctx context.Context) {
 			if err != nil {
 				m.log.Errorw("failed to save to file", "error", err)
 			}
+
+			m.log.Info("saved metrics to file")
 		}
 	}
 }
