@@ -3,6 +3,7 @@ package app
 import (
 	"flag"
 	"fmt"
+
 	"github.com/caarlos0/env/v6"
 )
 
@@ -57,7 +58,7 @@ func getServerFlags() (host StartFlags, err error) {
 		flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
 	}
 
-	if fl.Restore == false {
+	if !fl.Restore {
 		flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
 	}
 

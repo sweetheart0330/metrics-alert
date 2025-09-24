@@ -3,9 +3,10 @@ package filestore
 import (
 	"encoding/json"
 	"fmt"
-	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"io"
 	"os"
+
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
 type FileStorage struct {
@@ -57,7 +58,7 @@ func (f *FileStorage) UploadMetrics() ([]models.Metrics, error) {
 	}
 
 	var metrics []models.Metrics
-	err = json.Unmarshal(data, metrics)
+	err = json.Unmarshal(data, &metrics)
 	if err != nil {
 		return nil, err
 	}
