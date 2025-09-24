@@ -97,3 +97,56 @@ func (mr *MockIRepositoryMockRecorder) UpdateGaugeMetric(metric any) *gomock.Cal
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGaugeMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateGaugeMetric), metric)
 }
+
+// MockFileSaver is a mock of FileSaver interface.
+type MockFileSaver struct {
+	ctrl     *gomock.Controller
+	recorder *MockFileSaverMockRecorder
+	isgomock struct{}
+}
+
+// MockFileSaverMockRecorder is the mock recorder for MockFileSaver.
+type MockFileSaverMockRecorder struct {
+	mock *MockFileSaver
+}
+
+// NewMockFileSaver creates a new mock instance.
+func NewMockFileSaver(ctrl *gomock.Controller) *MockFileSaver {
+	mock := &MockFileSaver{ctrl: ctrl}
+	mock.recorder = &MockFileSaverMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockFileSaver) EXPECT() *MockFileSaverMockRecorder {
+	return m.recorder
+}
+
+// UploadMetrics mocks base method.
+func (m *MockFileSaver) UploadMetrics() ([]models.Metrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadMetrics")
+	ret0, _ := ret[0].([]models.Metrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadMetrics indicates an expected call of UploadMetrics.
+func (mr *MockFileSaverMockRecorder) UploadMetrics() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadMetrics", reflect.TypeOf((*MockFileSaver)(nil).UploadMetrics))
+}
+
+// WriteMetrics mocks base method.
+func (m *MockFileSaver) WriteMetrics(metrics []models.Metrics) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteMetrics", metrics)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteMetrics indicates an expected call of WriteMetrics.
+func (mr *MockFileSaverMockRecorder) WriteMetrics(metrics any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteMetrics", reflect.TypeOf((*MockFileSaver)(nil).WriteMetrics), metrics)
+}
