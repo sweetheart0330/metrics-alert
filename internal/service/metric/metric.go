@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"slices"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"github.com/sweetheart0330/metrics-alert/internal/repository"
@@ -33,9 +34,9 @@ func New(ctx context.Context, repo repository.IRepository, fileStorage repositor
 		log:           log,
 	}
 
-	if storeInterval > 0 {
-		//go metric.saveInPeriod(ctx)
-	}
+	//if storeInterval > 0 {
+	//	//go metric.saveInPeriod(ctx)
+	//}
 
 	return metric
 }
