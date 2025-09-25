@@ -11,6 +11,7 @@ import (
 	"github.com/sweetheart0330/metrics-alert/internal/mocks"
 	model "github.com/sweetheart0330/metrics-alert/internal/model"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
 
 func Test_NewAgent(t *testing.T) {
@@ -18,7 +19,16 @@ func Test_NewAgent(t *testing.T) {
 	mockCl := mocks.NewMockIClient(ctrl)
 	mockCollector := mocks.NewMockMetricCollector(ctrl)
 
-	ag := NewAgent(mockCl, mockCollector, 10)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		t.Errorf("failed to init logger, err: %w", err)
+		return
+	}
+
+	defer logger.Sync()
+	sugar := *logger.Sugar()
+
+	ag := NewAgent(mockCl, mockCollector, 10, &sugar)
 
 	assert.Equal(t, mockCl, ag.cl)
 	assert.Equal(t, mockCollector, ag.collect)

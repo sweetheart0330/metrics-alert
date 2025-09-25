@@ -66,5 +66,13 @@ func RunServer(ctx context.Context) error {
 
 	sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
 
-	return http.ListenAndServe(srvCfg.Host, route)
+	func() {
+		err = http.ListenAndServe(srvCfg.Host, route)
+		if err != nil {
+			sugar.Errorw("Failed to start server", "err", err)
+			return
+		}
+	}()
+
+	return nil
 }
