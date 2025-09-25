@@ -2,7 +2,6 @@ package handler
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -68,8 +67,6 @@ func (h Handler) DecompressHandle(next http.Handler) http.Handler {
 func (h Handler) MiddlewareLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			fm, _ := io.ReadAll(r.Body)
-			fmt.Println(string(fm))
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 			t1 := time.Now()

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	models "github.com/sweetheart0330/metrics-alert/internal/model"
-	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 	"html/template"
 	"io"
 	"net/http"
 	"strconv"
+
+	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 )
 
 func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +215,7 @@ func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*mod
 
 	defer r.Body.Close()
 
+	fmt.Println("body: ", string(body))
 	var metric models.Metrics
 	err = json.Unmarshal(body, &metric)
 	if err != nil {
