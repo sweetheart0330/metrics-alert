@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -90,7 +89,6 @@ func (r *Metrics) startCollectMetrics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("canceled here metric collection")
 			return
 		case <-t.C:
 			r.collectMetrics()

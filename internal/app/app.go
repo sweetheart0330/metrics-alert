@@ -2,10 +2,13 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -64,15 +67,30 @@ func RunServer(ctx context.Context) error {
 
 	route := router.NewRouter(h)
 
-	sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
+	eg, egCtx := errgroup.WithContext(ctx)
 
-	func() {
-		err = http.ListenAndServe(srvCfg.Host, route)
-		if err != nil {
-			sugar.Errorw("Failed to start server", "err", err)
-			return
+	server := &http.Server{
+		Addr:    srvCfg.Host,
+		Handler: route,
+	}
+	eg.Go(func() error {
+		sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
+		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("failed to start server: %w", err)
 		}
-	}()
 
-	return nil
+		return nil
+	})
+
+	eg.Go(func() error {
+		<-egCtx.Done()
+		shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		sugar.Infow("Stopping server", "srvCfg", srvCfg.Host)
+
+		return server.Shutdown(shCtx)
+	})
+
+	return eg.Wait()
 }

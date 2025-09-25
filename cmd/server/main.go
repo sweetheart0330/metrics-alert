@@ -2,24 +2,34 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
 
 	"github.com/sweetheart0330/metrics-alert/internal/app"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	parentCtx := context.Background()
-	ctx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		select {
+		case <-ctx.Done():
+			stop()
+			return nil
+		case <-egCtx.Done():
+			return nil
+		}
+	})
 
-	if err := app.RunServer(ctx); err != nil {
-		log.Printf("server error, err: %v, exit", err)
+	eg.Go(func() error { return app.RunServer(egCtx) })
+
+	if err := eg.Wait(); err != nil {
+		log.Println("Error running server", zap.Error(err))
+		return
 	}
 
-	<-ctx.Done()
-	stop()
-
-	fmt.Println("Server stopped")
+	log.Println("Server exited")
 }

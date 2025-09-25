@@ -37,12 +37,10 @@ func (a Agent) StartAgent(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("context canceled")
 			return nil
 		case <-tick.C:
 			err := a.sendMetrics()
 			if err != nil {
-				fmt.Println("err here:", err)
 				return fmt.Errorf("failed to send metrics: %w", err)
 			}
 

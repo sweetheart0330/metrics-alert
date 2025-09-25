@@ -2,26 +2,34 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
 
 	"github.com/sweetheart0330/metrics-alert/internal/app"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	parentCtx := context.Background()
-	ctx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	go func() {
-		if err := app.RunAgent(ctx); err != nil {
-			log.Fatal(err)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		select {
+		case <-ctx.Done():
+			stop()
+			return nil
+		case <-egCtx.Done():
+			return nil
 		}
-	}()
+	})
 
-	<-ctx.Done()
-	stop()
+	eg.Go(func() error { return app.RunAgent(egCtx) })
 
-	fmt.Println("Application stopped")
+	if err := eg.Wait(); err != nil {
+		log.Println("Error running agent", zap.Error(err))
+		return
+	}
+
+	log.Println("Agent exited")
 }
