@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"go.uber.org/zap"
 )
 
 const (
@@ -50,13 +52,15 @@ type Config struct {
 type Metrics struct {
 	gauge        sync.Map
 	mu           sync.RWMutex
-	counter      int64
+	counter      atomic.Int64
 	pollInterval time.Duration
+	log          *zap.SugaredLogger
 }
 
-func NewRuntimeMetrics(ctx context.Context, pollInterval uint) *Metrics {
+func NewRuntimeMetrics(ctx context.Context, pollInterval uint, log *zap.SugaredLogger) *Metrics {
 	metric := &Metrics{
 		pollInterval: time.Duration(pollInterval) * time.Second,
+		log:          log,
 	}
 
 	go metric.startCollectMetrics(ctx)
@@ -72,10 +76,11 @@ func (r *Metrics) GetGauge() *sync.Map {
 }
 
 func (r *Metrics) GetCounter() models.Metrics {
+	counter := r.counter.Load()
 	return models.Metrics{
 		ID:    PollCount,
 		MType: models.Counter,
-		Delta: &r.counter,
+		Delta: &counter,
 	}
 }
 
@@ -85,6 +90,7 @@ func (r *Metrics) startCollectMetrics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("canceled here metric collection")
 			return
 		case <-t.C:
 			r.collectMetrics()
@@ -127,7 +133,7 @@ func (r *Metrics) collectMetrics() {
 	r.gauge.Store(SysKey, float64(m.Sys))
 	r.gauge.Store(TotalAllocKey, float64(m.TotalAlloc))
 
-	r.counter++
+	r.counter.Add(1)
 
-	fmt.Println("gauge collected")
+	r.log.Info("gauge collected")
 }

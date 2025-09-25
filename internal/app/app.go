@@ -3,8 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"net/http"
+
+	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -21,11 +22,17 @@ func RunAgent(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("failed to init logger, err: %w", err)
+	}
 
+	defer logger.Sync()
+	sugar := *logger.Sugar()
 	clCfg := httpCl.Config{Host: "http://" + opt.Host}
 	cl := httpCl.NewClient(clCfg)
-	ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval)
-	serv := servAgent.NewAgent(cl, ag, opt.ReportInterval)
+	ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval, &sugar)
+	serv := servAgent.NewAgent(cl, ag, opt.ReportInterval, &sugar)
 
 	return serv.StartAgent(ctx)
 }
@@ -59,5 +66,12 @@ func RunServer(ctx context.Context) error {
 
 	sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
 
-	return http.ListenAndServe(srvCfg.Host, route)
+	go func() {
+		err = http.ListenAndServe(srvCfg.Host, route)
+		if err != nil {
+			fmt.Println("err in server ", err)
+		}
+	}()
+
+	return nil
 }

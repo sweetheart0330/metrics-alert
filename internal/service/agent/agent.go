@@ -8,6 +8,7 @@ import (
 	"github.com/sweetheart0330/metrics-alert/internal/agent"
 	"github.com/sweetheart0330/metrics-alert/internal/client"
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -17,13 +18,15 @@ type Agent struct {
 	cl      client.IClient
 	collect agent.MetricCollector
 	Config
+	log *zap.SugaredLogger
 }
 
-func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval uint) *Agent {
+func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval uint, log *zap.SugaredLogger) *Agent {
 	return &Agent{
 		cl:      cl,
 		collect: agent,
 		Config:  Config{ReportInterval: time.Duration(reportInterval) * time.Second},
+		log:     log,
 	}
 }
 
@@ -34,14 +37,16 @@ func (a Agent) StartAgent(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("context canceled")
 			return nil
 		case <-tick.C:
 			err := a.sendMetrics()
 			if err != nil {
+				fmt.Println("err here:", err)
 				return fmt.Errorf("failed to send metrics: %w", err)
 			}
 
-			fmt.Println("metrics sent to server")
+			a.log.Info("send metrics to server")
 		}
 	}
 }

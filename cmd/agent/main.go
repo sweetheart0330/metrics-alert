@@ -15,7 +15,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
-		if err := app.RunAgent(parentCtx); err != nil {
+		if err := app.RunAgent(ctx); err != nil {
 			log.Fatal(err)
 		}
 	}()

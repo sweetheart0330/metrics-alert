@@ -46,7 +46,6 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set(compressHeader, compressFormat)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -82,7 +81,6 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set(compressHeader, compressFormat)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -146,6 +144,8 @@ func (h Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func fillMetric(r *http.Request) (*models.Metrics, error) {
@@ -215,7 +215,6 @@ func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*mod
 
 	defer r.Body.Close()
 
-	fmt.Println("body: ", string(body))
 	var metric models.Metrics
 	err = json.Unmarshal(body, &metric)
 	if err != nil {
