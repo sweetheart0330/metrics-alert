@@ -21,7 +21,7 @@ func Test_NewAgent(t *testing.T) {
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		t.Errorf("failed to init logger, err: %w", err)
+		t.Errorf("failed to init logger, err: %v", err)
 		return
 	}
 
