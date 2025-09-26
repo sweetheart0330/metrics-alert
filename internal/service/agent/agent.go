@@ -41,7 +41,8 @@ func (a Agent) StartAgent(ctx context.Context) error {
 		case <-tick.C:
 			err := a.sendMetrics()
 			if err != nil {
-				return fmt.Errorf("failed to send metrics: %w", err)
+				a.log.Errorw("failed to send request to update metrics", "error", err.Error())
+				continue //return fmt.Errorf("failed to send metrics: %w", err)
 			}
 
 			a.log.Info("send metrics to server")
