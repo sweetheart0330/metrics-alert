@@ -62,7 +62,15 @@ func (a Agent) sendMetrics() (err error) {
 			Value: &valFl,
 		})
 
-		return err == nil
+		if err != nil {
+			a.log.Errorw("failed to send gauge",
+				"key", key,
+				"value", valFl,
+				"error", err.Error())
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		return true
 	})
 
 	if err != nil {
@@ -72,7 +80,9 @@ func (a Agent) sendMetrics() (err error) {
 	counter := a.collect.GetCounter()
 	err = a.cl.SendCounterMetric(counter)
 	if err != nil {
-		return fmt.Errorf("collect send counter metric failed: %w", err)
+		a.log.Errorw("failed to send counter",
+			"error", err.Error())
+		//return fmt.Errorf("collect send counter metric failed: %w", err)
 	}
 
 	return nil

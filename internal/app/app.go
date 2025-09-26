@@ -37,6 +37,8 @@ func RunAgent(ctx context.Context) error {
 	ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval, &sugar)
 	serv := servAgent.NewAgent(cl, ag, opt.ReportInterval, &sugar)
 
+	sugar.Info("Agent started")
+
 	return serv.StartAgent(ctx)
 }
 
