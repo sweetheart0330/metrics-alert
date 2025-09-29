@@ -53,10 +53,22 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	response := map[string]interface{}{
+		"status":  "success",
+		"message": "Запрос обработан",
+	}
+	jsonR, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to marshal response, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonR)
+
 }
 
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -64,10 +76,9 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
+		// http.Error уже устанавливает заголовки и статус
 		http.Error(w, fmt.Sprintf("failed to get body, err: %v", err), http.StatusBadRequest)
 		h.log.Error("failed to get body, err: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 
@@ -77,24 +88,19 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	jsonMetric, err := json.Marshal(resp)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "JSON marshal error", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = w.Write(jsonMetric)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+	// Устанавливаем статус перед записью тела
 	w.WriteHeader(http.StatusOK)
+	w.Write(jsonMetric)
 }
 
 func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
