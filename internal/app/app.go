@@ -10,7 +10,6 @@ import (
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
 	"github.com/sweetheart0330/metrics-alert/internal/handler"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/memory"
@@ -34,8 +33,8 @@ func RunAgent(ctx context.Context) error {
 	sugar := *logger.Sugar()
 	clCfg := httpCl.Config{Host: "http://" + opt.Host}
 	cl := httpCl.NewClient(clCfg)
-	ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval, &sugar)
-	serv := servAgent.NewAgent(cl, ag, opt.ReportInterval, &sugar)
+	//ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval, &sugar)
+	serv := servAgent.NewAgent(cl, nil, opt.ReportInterval, opt.PollInterval, &sugar)
 
 	sugar.Info("Agent started")
 

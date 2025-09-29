@@ -30,6 +30,12 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get body, err: %v", err), http.StatusBadRequest)
@@ -50,9 +56,16 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get body, err: %v", err), http.StatusBadRequest)
+		h.log.Error("failed to get body, err: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -129,13 +142,12 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	metrics, err := h.metric.GetAllMetrics()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	// Выполняем шаблон с данными метрик
 	err = h.template.Execute(w, metrics)

@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"errors"
 	"sync"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
@@ -14,7 +15,7 @@ type MemStorage struct {
 
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		metrics: map[string]models.Metrics{},
+		metrics: make(map[string]models.Metrics),
 	}
 }
 
@@ -31,13 +32,17 @@ func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
+	if metric.Delta == nil {
+		return errors.New("metrics counter delta is nil")
+	}
+
 	val, ok := ms.metrics[metric.ID]
 	if !ok {
 		ms.metrics[metric.ID] = metric
 		return nil
 	}
 
-	*val.Delta = *val.Delta + *metric.Delta
+	*val.Delta += *metric.Delta
 	ms.metrics[metric.ID] = val
 
 	return nil

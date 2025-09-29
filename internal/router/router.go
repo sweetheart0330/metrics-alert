@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
@@ -17,7 +18,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	mux.Use(h.CompressHandle)
 	mux.Use(h.DecompressHandle)
 
-	mux.Route("/update", func(r chi.Router) {
+	mux.Route("/update/", func(r chi.Router) {
 		r.Post("/", h.UpdateJSONMetric)
 
 		r.Post(
@@ -26,7 +27,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 		)
 	})
 
-	mux.Route("/value", func(r chi.Router) {
+	mux.Route("/value/", func(r chi.Router) {
 		r.Post("/", h.GetJSONMetric)
 		r.Get(
 			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),

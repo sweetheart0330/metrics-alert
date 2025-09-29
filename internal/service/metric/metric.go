@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -41,29 +40,29 @@ func New(ctx context.Context, repo repository.IRepository, fileStorage repositor
 	return metric
 }
 
-func (m *Metric) saveInPeriod(ctx context.Context) {
-	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			t.Stop()
-			return
-		case <-t.C:
-			err := m.saveToFile()
-			if err != nil {
-				m.log.Errorw("failed to save to file", "error", err)
-			}
-			m.log.Info("saved metrics to file")
-		}
-	}
-}
+//func (m *Metric) saveInPeriod(ctx context.Context) {
+//	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
+//	defer t.Stop()
+//	for {
+//		select {
+//		case <-ctx.Done():
+//			t.Stop()
+//			return
+//		case <-t.C:
+//			err := m.saveToFile()
+//			if err != nil {
+//				m.log.Errorw("failed to save to file", "error", err)
+//			}
+//			m.log.Info("saved metrics to file")
+//		}
+//	}
+//}
 
 func (m *Metric) UpdateMetric(metrics models.Metrics) error {
-	err := m.saveToFile()
-	if err != nil {
-		return fmt.Errorf("failed to save to file, err: %w", err)
-	}
+	//err := m.saveToFile()
+	//if err != nil {
+	//	return fmt.Errorf("failed to save to file, err: %w", err)
+	//}
 
 	switch metrics.MType {
 	case models.Counter:
@@ -113,17 +112,17 @@ func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
 	return metrics, nil
 }
 
-func (m *Metric) saveToFile() error {
-	if m.storeInterval == 0 {
-		metrics, err := m.repo.GetAllMetrics()
-		if err != nil {
-			return fmt.Errorf("failed to get metrics, err: %w", err)
-		}
-		err = m.fileStorage.WriteMetrics(metrics)
-		if err != nil {
-			return fmt.Errorf("failed to write metrics, err: %w", err)
-		}
-	}
-
-	return nil
-}
+//func (m *Metric) saveToFile() error {
+//	if m.storeInterval == 0 {
+//		metrics, err := m.repo.GetAllMetrics()
+//		if err != nil {
+//			return fmt.Errorf("failed to get metrics, err: %w", err)
+//		}
+//		err = m.fileStorage.WriteMetrics(metrics)
+//		if err != nil {
+//			return fmt.Errorf("failed to write metrics, err: %w", err)
+//		}
+//	}
+//
+//	return nil
+//}

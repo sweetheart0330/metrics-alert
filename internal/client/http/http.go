@@ -2,10 +2,8 @@ package http
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -13,7 +11,7 @@ import (
 )
 
 const (
-	updMetricPath = "/update"
+	updMetricPath = "/update/"
 )
 
 type Config struct {
@@ -75,24 +73,24 @@ func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
 		return nil, fmt.Errorf("failed to create json body, err: %w", err)
 	}
 
-	body, err := compressBody(jsonMetric)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compress json body, err: %w", err)
-	}
+	//body, err := compressBody(jsonMetric)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to compress json body, err: %w", err)
+	//}
 
-	req, err := http.NewRequest(http.MethodPost, reqURL, body)
+	req, err := http.NewRequest(http.MethodPost, reqURL, bytes.NewBuffer(jsonMetric))
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
-	req.Header.Set("Content-Encoding", "gzip")
+	//req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
-
+	//LogIncomingRequest(req)
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not send request: %w", err)
 	}
-
+	//	LogOutgoingResponse(resp)
 	return resp, nil
 }
 
@@ -135,14 +133,34 @@ func formURL(url string, m models.Metrics, val string) string {
 	return builder.String()
 }
 
-func compressBody(body []byte) (io.Reader, error) {
-	var buf bytes.Buffer
-	gzWriter := gzip.NewWriter(&buf)
-	_, err := gzWriter.Write(body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compress json body, err: %w", err)
-	}
-	defer gzWriter.Close()
+//func compressBody(body []byte) (io.Reader, error) {
+//	var buf bytes.Buffer
+//	gzWriter := gzip.NewWriter(&buf)
+//	_, err := gzWriter.Write(body)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to compress json body, err: %w", err)
+//	}
+//	defer gzWriter.Close()
+//
+//	return &buf, nil
+//}
 
-	return &buf, nil
-}
+//// Логирование входящего запроса
+//func LogIncomingRequest(r *http.Request) {
+//	data, err := httputil.DumpRequest(r, true)
+//	if err != nil {
+//		log.Printf("Ошибка при дампе запроса: %v", err)
+//		return
+//	}
+//	log.Printf("Входящий запрос:\n%s", string(data))
+//}
+//
+//// Логирование исходящего ответа
+//func LogOutgoingResponse(resp *http.Response) {
+//	data, err := httputil.DumpResponse(resp, true)
+//	if err != nil {
+//		log.Printf("Ошибка при дампе ответа: %v", err)
+//		return
+//	}
+//	log.Printf("Ответ:\n%s", string(data))
+//}
