@@ -40,6 +40,7 @@ func (c Client) SendGaugeMetric(m models.Metrics) error {
 		return fmt.Errorf("failed to send gauge metric, err: %w", err)
 	}
 
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, err := getDecompressedBody(resp.Body)
 		if err != nil {
