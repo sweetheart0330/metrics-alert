@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	compressHeader = "Content-Encoding"
-	compressFormat = "gzip"
+	compressReqHeader  = "Accept-Encoding"
+	compressRespHeader = "Content-Encoding"
+	compressFormat     = "gzip"
 )
 
 type gzipWriter struct {
@@ -26,7 +27,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func (h Handler) CompressHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get(compressHeader), compressFormat) {
+		if !strings.Contains(r.Header.Get(compressReqHeader), compressFormat) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -38,27 +39,31 @@ func (h Handler) CompressHandle(next http.Handler) http.Handler {
 		}
 		defer gz.Close()
 
-		w.Header().Set(compressHeader, compressFormat)
+		w.Header().Set("Content-Encoding", "gzip")
+
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
 }
 
 func (h Handler) DecompressHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get(compressHeader), compressFormat) {
+		if !strings.Contains(r.Header.Get(compressReqHeader), compressFormat) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if strings.Contains(r.Header.Get(compressRespHeader), compressFormat) {
+			gz, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			r.Body = struct {
+				io.Reader
+				io.Closer
+			}{gz, r.Body}
 		}
-
-		defer gz.Close()
-
-		r.Body = gz
 
 		next.ServeHTTP(w, r)
 	})

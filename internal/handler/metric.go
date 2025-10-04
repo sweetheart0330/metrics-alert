@@ -68,7 +68,6 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
