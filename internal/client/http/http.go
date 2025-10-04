@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	updMetricPath = "/update"
+	updMetricPath = "/update/"
 )
 
 type Config struct {
@@ -40,9 +40,13 @@ func (c Client) SendGaugeMetric(m models.Metrics) error {
 		return fmt.Errorf("failed to send gauge metric, err: %w", err)
 	}
 
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server, status code: %d", resp.StatusCode)
+		body, err := getDecompressedBody(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read resp body body, err: %w", err)
+		}
+
+		return fmt.Errorf("bad response from server, status code: %d, error: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -62,7 +66,12 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server, status code: %d", resp.StatusCode)
+		body, err := getDecompressedBody(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read resp body body, err: %w", err)
+		}
+
+		return fmt.Errorf("bad response from server, status code: %d, error: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -85,6 +94,7 @@ func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
+	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
 	//LogIncomingRequest(req)
@@ -145,4 +155,24 @@ func compressBody(body []byte) (io.Reader, error) {
 	defer gzWriter.Close()
 
 	return &buf, nil
+}
+
+func getDecompressedBody(body io.ReadCloser) ([]byte, error) {
+	gz, err := gzip.NewReader(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress response body, err: %w", err)
+	}
+
+	body = struct {
+		io.Reader
+		io.Closer
+	}{gz, body}
+	defer body.Close()
+
+	respBody, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read resp body body, err: %w", err)
+	}
+
+	return respBody, nil
 }

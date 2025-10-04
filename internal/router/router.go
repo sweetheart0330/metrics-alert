@@ -19,7 +19,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	mux.Use(h.CompressHandle)
 	//mux.Use(h.GzipMiddlewareHandler)
 
-	mux.Route("/update", func(r chi.Router) {
+	mux.Route("/update/", func(r chi.Router) {
 		r.Post("/", h.UpdateJSONMetric)
 
 		r.Post(
@@ -28,7 +28,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 		)
 	})
 
-	mux.Route("/value", func(r chi.Router) {
+	mux.Route("/value/", func(r chi.Router) {
 		r.Post("/", h.GetJSONMetric)
 		r.Get(
 			fmt.Sprintf("/{%s}/{%s}", models.TypeParam, models.NameParam),

@@ -118,6 +118,8 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 				//continue
 				return fmt.Errorf("failed to send metrics: %w", err)
 			}
+
+			a.log.Info("metrics sent")
 		}
 	}
 }
