@@ -19,10 +19,10 @@ func NewDatabase(ctx context.Context, connStr string) (repository.IRepository, e
 		return nil, fmt.Errorf("could not connect to database: %w", err)
 	}
 
-	err = pool.Ping(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not ping database: %w", err)
-	}
+	//err = pool.Ping(ctx)
+	//if err != nil {
+	//	return nil, fmt.Errorf("could not ping database: %w", err)
+	//}
 
 	return &Database{pg: pool}, nil
 }
