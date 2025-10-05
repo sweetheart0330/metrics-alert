@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -72,4 +73,9 @@ func (ms *MemStorage) GetAllMetrics() ([]models.Metrics, error) {
 	}
 
 	return mList, nil
+}
+
+func (ms *MemStorage) Ping(ctx context.Context) error {
+	// в данном пакете нечего пинговать
+	return nil
 }

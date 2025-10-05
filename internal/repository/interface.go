@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"context"
+
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
@@ -11,6 +13,7 @@ type IRepository interface {
 	UpdateAllMetrics(metrics []models.Metrics)
 	GetMetric(metricID string) (models.Metrics, error)
 	GetAllMetrics() ([]models.Metrics, error)
+	Ping(ctx context.Context) error
 }
 
 type FileSaver interface {

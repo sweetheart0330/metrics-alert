@@ -240,3 +240,13 @@ func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*mod
 
 	return &metric, nil
 }
+
+func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	err := h.metric.Ping(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to ping metric, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
