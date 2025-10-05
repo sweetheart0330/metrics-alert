@@ -6,7 +6,7 @@ import (
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 )
 
-//go:generate mockgen -source=./interface.go -destination=./../mocks/mock_repo.go
+//go:generate mockgen -source=./interface.go -destination=./../mocks/mock_repo.go -package=mocks
 type IRepository interface {
 	UpdateCounterMetric(metric models.Metrics) error
 	UpdateGaugeMetric(metric models.Metrics) error
