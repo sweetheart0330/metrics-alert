@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sweetheart0330/metrics-alert/internal/config"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"golang.org/x/sync/errgroup"
 
@@ -20,7 +21,7 @@ import (
 )
 
 func RunAgent(ctx context.Context) error {
-	opt, err := getAgentFlags()
+	cfg, err := config.GetAgent()
 	if err != nil {
 		return err
 	}
@@ -31,10 +32,10 @@ func RunAgent(ctx context.Context) error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
-	clCfg := httpCl.Config{Host: "http://" + opt.Host}
+	clCfg := httpCl.Config{Host: "http://" + cfg.Host}
 	cl := httpCl.NewClient(clCfg)
-	//ag := runtime.NewRuntimeMetrics(ctx, opt.PollInterval, &sugar)
-	serv := servAgent.NewAgent(cl, nil, opt.ReportInterval, opt.PollInterval, &sugar)
+	//ag := runtime.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
+	serv := servAgent.NewAgent(cl, nil, cfg.ReportInterval, cfg.PollInterval, &sugar)
 
 	sugar.Info("Agent started")
 
@@ -42,7 +43,7 @@ func RunAgent(ctx context.Context) error {
 }
 
 func RunServer(ctx context.Context) error {
-	srvCfg, err := getServerFlags()
+	cfg, err := config.GetServer()
 	if err != nil {
 		return fmt.Errorf("failed to get server flags, err: %w", err)
 	}
@@ -54,13 +55,13 @@ func RunServer(ctx context.Context) error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
-	fileStorage, err := filestore.NewFileStorage(srvCfg.FileStoragePath)
+	fileStorage, err := filestore.NewFileStorage(cfg.FileStoragePath)
 	if err != nil {
 		return fmt.Errorf("failed to init file storage, err: %w", err)
 	}
 
 	inMemoryRepo := memory.NewMemStorage()
-	MetricServ, err := metric.New(ctx, inMemoryRepo, fileStorage, *srvCfg.StoreInterval, srvCfg.Restore, sugar)
+	MetricServ, err := metric.New(ctx, inMemoryRepo, fileStorage, *cfg.StoreInterval, cfg.Restore, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to init metric service, err: %w", err)
 	}
@@ -75,11 +76,11 @@ func RunServer(ctx context.Context) error {
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	server := &http.Server{
-		Addr:    srvCfg.Host,
+		Addr:    cfg.Host,
 		Handler: route,
 	}
 	eg.Go(func() error {
-		sugar.Infow("Starting server", "srvCfg", srvCfg.Host)
+		sugar.Infow("Starting server", "cfg", cfg.Host)
 		if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("failed to start server: %w", err)
 		}
@@ -92,7 +93,7 @@ func RunServer(ctx context.Context) error {
 		shCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		sugar.Infow("Stopping server", "srvCfg", srvCfg.Host)
+		sugar.Infow("Stopping server", "cfg", cfg.Host)
 
 		return server.Shutdown(shCtx)
 	})
