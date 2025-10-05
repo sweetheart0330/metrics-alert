@@ -23,7 +23,7 @@ func Test_New(t *testing.T) {
 	defer logger.Sync()
 	sugar := *logger.Sugar()
 
-	m := New(context.Background(), mockRepo, mockFileSaver, 0, sugar)
+	m, _ := New(context.Background(), mockRepo, mockFileSaver, 0, false, sugar)
 
 	assert.Equal(t, mockRepo, m.repo)
 }

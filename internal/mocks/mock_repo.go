@@ -70,6 +70,18 @@ func (mr *MockIRepositoryMockRecorder) GetMetric(metricID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetric", reflect.TypeOf((*MockIRepository)(nil).GetMetric), metricID)
 }
 
+// UpdateAllMetrics mocks base method.
+func (m *MockIRepository) UpdateAllMetrics(metrics []models.Metrics) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "UpdateAllMetrics", metrics)
+}
+
+// UpdateAllMetrics indicates an expected call of UpdateAllMetrics.
+func (mr *MockIRepositoryMockRecorder) UpdateAllMetrics(metrics any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAllMetrics", reflect.TypeOf((*MockIRepository)(nil).UpdateAllMetrics), metrics)
+}
+
 // UpdateCounterMetric mocks base method.
 func (m *MockIRepository) UpdateCounterMetric(metric models.Metrics) error {
 	m.ctrl.T.Helper()
