@@ -38,11 +38,11 @@ func New(ctx context.Context, repo repository.IRepository, fileStorage repositor
 	if restore {
 		metrics, err := metric.fileStorage.UploadMetrics()
 		if err != nil {
-			return nil, fmt.Errorf("can't restore data from file, err: %w", err)
+			log.Warnw("failed to upload metrics", "error", err)
+		} else {
+			repo.UpdateAllMetrics(metrics)
+			log.Debug("metrics are successfully restored")
 		}
-
-		repo.UpdateAllMetrics(metrics)
-		log.Debug("metrics are successfully restored")
 	}
 
 	if storeInterval > 0 {
