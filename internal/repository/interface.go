@@ -8,6 +8,7 @@ import (
 type IRepository interface {
 	UpdateCounterMetric(metric models.Metrics) error
 	UpdateGaugeMetric(metric models.Metrics) error
+	UpdateAllMetrics(metrics []models.Metrics)
 	GetMetric(metricID string) (models.Metrics, error)
 	GetAllMetrics() ([]models.Metrics, error)
 }

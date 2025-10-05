@@ -24,7 +24,11 @@ func NewFileStorage(filename string) (*FileStorage, error) {
 }
 
 func (f *FileStorage) WriteMetrics(metrics []models.Metrics) error {
-	jsonMetrics, err := json.Marshal(metrics)
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	jsonMetrics, err := json.MarshalIndent(metrics, "", "	")
 	if err != nil {
 		return err
 	}

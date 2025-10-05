@@ -60,7 +60,11 @@ func RunServer(ctx context.Context) error {
 	}
 
 	inMemoryRepo := memory.NewMemStorage()
-	MetricServ := metric.New(ctx, inMemoryRepo, fileStorage, *srvCfg.StoreInterval, sugar)
+	MetricServ, err := metric.New(ctx, inMemoryRepo, fileStorage, *srvCfg.StoreInterval, srvCfg.Restore, sugar)
+	if err != nil {
+		return fmt.Errorf("failed to init metric service, err: %w", err)
+	}
+
 	h, err := handler.NewHandler(MetricServ, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to create new handler: %w", err)

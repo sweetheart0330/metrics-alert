@@ -48,6 +48,15 @@ func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
 	return nil
 }
 
+func (ms *MemStorage) UpdateAllMetrics(metrics []models.Metrics) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	for _, val := range metrics {
+		ms.metrics[val.ID] = val
+	}
+}
+
 func (ms *MemStorage) GetMetric(metricID string) (models.Metrics, error) {
 	m, ok := ms.metrics[metricID]
 	if !ok {

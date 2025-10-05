@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -23,9 +24,10 @@ type Metric struct {
 	fileStorage   repository.FileSaver
 	log           zap.SugaredLogger
 	storeInterval uint
+	restore       bool
 }
 
-func New(ctx context.Context, repo repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, log zap.SugaredLogger) *Metric {
+func New(ctx context.Context, repo repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, restore bool, log zap.SugaredLogger) (*Metric, error) {
 	metric := &Metric{
 		repo:          repo,
 		fileStorage:   fileStorage,
@@ -33,36 +35,48 @@ func New(ctx context.Context, repo repository.IRepository, fileStorage repositor
 		log:           log,
 	}
 
-	//if storeInterval > 0 {
-	//	//go metric.saveInPeriod(ctx)
-	//}
+	if restore {
+		metrics, err := metric.fileStorage.UploadMetrics()
+		if err != nil {
+			return nil, fmt.Errorf("can't restore data from file, err: %w", err)
+		}
 
-	return metric
+		repo.UpdateAllMetrics(metrics)
+		log.Debug("metrics are successfully restored")
+	}
+
+	if storeInterval > 0 {
+		go metric.saveInPeriod(ctx)
+	}
+
+	return metric, nil
 }
 
-//func (m *Metric) saveInPeriod(ctx context.Context) {
-//	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
-//	defer t.Stop()
-//	for {
-//		select {
-//		case <-ctx.Done():
-//			t.Stop()
-//			return
-//		case <-t.C:
-//			err := m.saveToFile()
-//			if err != nil {
-//				m.log.Errorw("failed to save to file", "error", err)
-//			}
-//			m.log.Info("saved metrics to file")
-//		}
-//	}
-//}
+func (m *Metric) saveInPeriod(ctx context.Context) {
+	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return
+		case <-t.C:
+			err := m.saveToFile()
+			if err != nil {
+				m.log.Errorw("failed to save to file", "error", err)
+			}
+			m.log.Info("saved metrics to file in period")
+		}
+	}
+}
 
 func (m *Metric) UpdateMetric(metrics models.Metrics) error {
-	//err := m.saveToFile()
-	//if err != nil {
-	//	return fmt.Errorf("failed to save to file, err: %w", err)
-	//}
+	if m.storeInterval == 0 {
+		err := m.saveToFile()
+		if err != nil {
+			return fmt.Errorf("failed to save to file, err: %w", err)
+		}
+	}
 
 	switch metrics.MType {
 	case models.Counter:
@@ -112,17 +126,15 @@ func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
 	return metrics, nil
 }
 
-//func (m *Metric) saveToFile() error {
-//	if m.storeInterval == 0 {
-//		metrics, err := m.repo.GetAllMetrics()
-//		if err != nil {
-//			return fmt.Errorf("failed to get metrics, err: %w", err)
-//		}
-//		err = m.fileStorage.WriteMetrics(metrics)
-//		if err != nil {
-//			return fmt.Errorf("failed to write metrics, err: %w", err)
-//		}
-//	}
-//
-//	return nil
-//}
+func (m *Metric) saveToFile() error {
+	metrics, err := m.repo.GetAllMetrics()
+	if err != nil {
+		return fmt.Errorf("failed to get metrics, err: %w", err)
+	}
+	err = m.fileStorage.WriteMetrics(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to write metrics, err: %w", err)
+	}
+
+	return nil
+}
