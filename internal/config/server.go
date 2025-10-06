@@ -23,7 +23,7 @@ func GetServer() (host ServerConfig, err error) {
 	}
 
 	if len(fl.Host) == 0 {
-		flag.StringVar(&fl.Host, "a", "localhost:8080", "address and port to send requests")
+		flag.StringVar(&fl.Host, "a", ":8080", "address and port to send requests")
 	}
 
 	if fl.StoreInterval == nil {

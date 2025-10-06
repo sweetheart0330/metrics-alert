@@ -24,9 +24,10 @@ type MemStorage struct {
 
 func NewMemStorage(ctx context.Context, fileSaver interfaces.FileSaver, log *zap.SugaredLogger, restore bool, storeInterval uint) *MemStorage {
 	mem := &MemStorage{
-		metrics:   make(map[string]models.Metrics),
-		fileSaver: fileSaver,
-		log:       log,
+		metrics:       make(map[string]models.Metrics),
+		fileSaver:     fileSaver,
+		log:           log,
+		storeInterval: storeInterval,
 	}
 
 	if restore {
