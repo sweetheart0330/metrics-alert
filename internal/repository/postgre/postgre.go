@@ -6,23 +6,18 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
-	"github.com/sweetheart0330/metrics-alert/internal/repository"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
 )
 
 type Database struct {
 	pg *pgxpool.Pool
 }
 
-func NewDatabase(ctx context.Context, connStr string) (repository.IRepository, error) {
+func NewDatabase(ctx context.Context, connStr string) (interfaces.IRepository, error) {
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %w", err)
 	}
-
-	//err = pool.Ping(ctx)
-	//if err != nil {
-	//	return nil, fmt.Errorf("could not ping database: %w", err)
-	//}
 
 	return &Database{pg: pool}, nil
 }
