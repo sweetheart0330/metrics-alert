@@ -34,7 +34,7 @@ func NewMemStorage(ctx context.Context, fileSaver interfaces.FileSaver, log *zap
 		if err != nil {
 			mem.log.Warnw("failed to upload metrics", "error", err)
 		} else {
-			mem.UpdateAllMetrics(metrics)
+			mem.UpdateAllMetrics(ctx, metrics)
 			mem.log.Debug("metrics are successfully restored")
 		}
 	}
@@ -65,7 +65,7 @@ func (ms *MemStorage) saveInPeriod(ctx context.Context) {
 }
 
 func (ms *MemStorage) saveToFile() error {
-	metrics, err := ms.GetAllMetrics()
+	metrics, err := ms.GetAllMetrics(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to get metrics, err: %w", err)
 	}
@@ -77,7 +77,7 @@ func (ms *MemStorage) saveToFile() error {
 	return nil
 }
 
-func (ms *MemStorage) UpdateGaugeMetric(metric models.Metrics) error {
+func (ms *MemStorage) UpdateGaugeMetric(_ context.Context, metric models.Metrics) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -86,7 +86,7 @@ func (ms *MemStorage) UpdateGaugeMetric(metric models.Metrics) error {
 	return nil
 }
 
-func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
+func (ms *MemStorage) UpdateCounterMetric(_ context.Context, metric models.Metrics) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -113,7 +113,7 @@ func (ms *MemStorage) UpdateCounterMetric(metric models.Metrics) error {
 	return nil
 }
 
-func (ms *MemStorage) UpdateAllMetrics(metrics []models.Metrics) {
+func (ms *MemStorage) UpdateAllMetrics(_ context.Context, metrics []models.Metrics) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -122,7 +122,7 @@ func (ms *MemStorage) UpdateAllMetrics(metrics []models.Metrics) {
 	}
 }
 
-func (ms *MemStorage) GetMetric(metricID string) (models.Metrics, error) {
+func (ms *MemStorage) GetMetric(_ context.Context, metricID string) (models.Metrics, error) {
 	m, ok := ms.metrics[metricID]
 	if !ok {
 		return models.Metrics{}, metric.ErrMetricNotFound
@@ -130,7 +130,7 @@ func (ms *MemStorage) GetMetric(metricID string) (models.Metrics, error) {
 
 	return m, nil
 }
-func (ms *MemStorage) GetAllMetrics() ([]models.Metrics, error) {
+func (ms *MemStorage) GetAllMetrics(_ context.Context) ([]models.Metrics, error) {
 	mList := make([]models.Metrics, 0, len(ms.metrics))
 	for _, m := range ms.metrics {
 		mList = append(mList, m)
@@ -139,7 +139,7 @@ func (ms *MemStorage) GetAllMetrics() ([]models.Metrics, error) {
 	return mList, nil
 }
 
-func (ms *MemStorage) Ping(ctx context.Context) error {
+func (ms *MemStorage) Ping(_ context.Context) error {
 	// в данном пакете нечего пинговать
 	return nil
 }

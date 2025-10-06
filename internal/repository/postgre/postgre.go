@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
 )
 
@@ -24,31 +23,6 @@ func NewDatabase(ctx context.Context, connStr string) (interfaces.IRepository, e
 
 func (db *Database) Close() {
 	db.pg.Close()
-}
-
-func (db *Database) UpdateCounterMetric(metric models.Metrics) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (db *Database) UpdateGaugeMetric(metric models.Metrics) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (db *Database) UpdateAllMetrics(metrics []models.Metrics) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (db *Database) GetMetric(metricID string) (models.Metrics, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (db *Database) GetAllMetrics() ([]models.Metrics, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (db *Database) Ping(ctx context.Context) error {

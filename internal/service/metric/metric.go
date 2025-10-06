@@ -32,19 +32,19 @@ func New(repo interfaces.IRepository, log zap.SugaredLogger) (*Metric, error) {
 	return metric, nil
 }
 
-func (m *Metric) UpdateMetric(metrics models.Metrics) error {
-	switch metrics.MType {
+func (m *Metric) UpdateMetric(ctx context.Context, metric models.Metrics) error {
+	switch metric.MType {
 	case models.Counter:
-		return m.repo.UpdateCounterMetric(metrics)
+		return m.repo.UpdateCounterMetric(ctx, metric)
 	case models.Gauge:
-		return m.repo.UpdateGaugeMetric(metrics)
+		return m.repo.UpdateGaugeMetric(ctx, metric)
 	}
 
-	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metrics.MType)
+	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metric.MType)
 }
 
-func (m *Metric) GetMetric(metric string) (models.Metrics, error) {
-	respMetric, err := m.repo.GetMetric(metric)
+func (m *Metric) GetMetric(ctx context.Context, metricID string) (models.Metrics, error) {
+	respMetric, err := m.repo.GetMetric(ctx, metricID)
 	if err != nil {
 		return models.Metrics{}, fmt.Errorf("failed to get metric: %w", err)
 	}
@@ -65,8 +65,8 @@ func (m *Metric) GetMetric(metric string) (models.Metrics, error) {
 	return respMetric, nil
 }
 
-func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
-	metrics, err := m.repo.GetAllMetrics()
+func (m *Metric) GetAllMetrics(ctx context.Context) ([]models.Metrics, error) {
+	metrics, err := m.repo.GetAllMetrics(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
