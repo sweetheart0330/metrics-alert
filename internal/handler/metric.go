@@ -20,7 +20,7 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.metric.UpdateMetric(*metric)
+	err = h.metric.UpdateMetric(r.Context(), *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -44,7 +44,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.metric.UpdateMetric(*metric)
+	err = h.metric.UpdateMetric(r.Context(), *metric)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metric, err: %v", err), http.StatusBadRequest)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,7 +81,7 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.metric.GetMetric(metric.ID)
+	resp, err := h.metric.GetMetric(r.Context(), metric.ID)
 	if err != nil {
 		if errors.Is(err, servMetric.ErrMetricNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -116,7 +116,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.metric.GetMetric(metric.ID)
+	resp, err := h.metric.GetMetric(r.Context(), metric.ID)
 	if err != nil {
 		if errors.Is(err, servMetric.ErrMetricNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -148,7 +148,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	metrics, err := h.metric.GetAllMetrics()
+	metrics, err := h.metric.GetAllMetrics(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -239,4 +239,14 @@ func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*mod
 	}
 
 	return &metric, nil
+}
+
+func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	err := h.metric.Ping(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to ping metric, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

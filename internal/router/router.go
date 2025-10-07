@@ -37,6 +37,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	})
 
 	mux.Get("/", h.GetAllMetrics)
+	mux.Get("/ping", h.Ping)
 
 	return mux
 }
