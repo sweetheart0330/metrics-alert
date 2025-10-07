@@ -105,7 +105,7 @@ func RunServer(ctx context.Context) error {
 
 func chooseRepo(ctx context.Context, log *zap.SugaredLogger, cfg config.ServerConfig) (interfaces.IRepository, error) {
 	if len(cfg.DBAddress) != 0 {
-		db, err := postgre.NewDatabase(ctx, cfg.DBAddress)
+		db, err := postgre.NewDatabase(ctx, cfg.DBAddress, log)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init database, err: %w", err)
 		}

@@ -8,6 +8,12 @@ import (
 )
 
 const (
+	checkMetricTable = `SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+              AND table_name = 'metrics'
+        );`
 	GetMetricsQuery = `SELECT metric_id, metric_type, delta_value, gauge_value
 						FROM metrics
 						WHERE metric_id = $1
