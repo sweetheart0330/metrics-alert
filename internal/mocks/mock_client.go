@@ -67,3 +67,17 @@ func (mr *MockIClientMockRecorder) SendGaugeMetric(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendGaugeMetric", reflect.TypeOf((*MockIClient)(nil).SendGaugeMetric), m)
 }
+
+// SendMetricsBatch mocks base method.
+func (m *MockIClient) SendMetricsBatch(metrics []models.Metrics) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendMetricsBatch", metrics)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendMetricsBatch indicates an expected call of SendMetricsBatch.
+func (mr *MockIClientMockRecorder) SendMetricsBatch(metrics any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMetricsBatch", reflect.TypeOf((*MockIClient)(nil).SendMetricsBatch), metrics)
+}

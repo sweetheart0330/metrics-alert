@@ -112,3 +112,17 @@ func (mr *MockIRepositoryMockRecorder) UpdateGaugeMetric(ctx, metric any) *gomoc
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGaugeMetric", reflect.TypeOf((*MockIRepository)(nil).UpdateGaugeMetric), ctx, metric)
 }
+
+// UpdateMetrics mocks base method.
+func (m *MockIRepository) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMetrics", ctx, metrics)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMetrics indicates an expected call of UpdateMetrics.
+func (mr *MockIRepositoryMockRecorder) UpdateMetrics(ctx, metrics any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMetrics", reflect.TypeOf((*MockIRepository)(nil).UpdateMetrics), ctx, metrics)
+}
