@@ -11,6 +11,7 @@ type IRepository interface {
 	UpdateCounterMetric(ctx context.Context, metric models.Metrics) error
 	UpdateGaugeMetric(ctx context.Context, metric models.Metrics) error
 	GetMetric(ctx context.Context, metricID string) (models.Metrics, error)
+	UpdateMetrics(ctx context.Context, metrics []models.Metrics) error
 	GetAllMetrics(ctx context.Context) ([]models.Metrics, error)
 	Ping(ctx context.Context) error
 }

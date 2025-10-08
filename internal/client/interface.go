@@ -6,4 +6,5 @@ import models "github.com/sweetheart0330/metrics-alert/internal/model"
 type IClient interface {
 	SendGaugeMetric(m models.Metrics) error
 	SendCounterMetric(m models.Metrics) error
+	SendMetricsBatch(metrics []models.Metrics) error
 }

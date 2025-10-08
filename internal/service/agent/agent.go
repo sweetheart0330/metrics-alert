@@ -112,10 +112,9 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 
 			a.log.Info("metrics collected")
 		case <-tick.C:
-			err := a.sendNewMetrics(metrics)
+			//err := a.sendNewMetrics(metrics)
+			err := a.cl.SendMetricsBatch(metrics)
 			if err != nil {
-				//a.log.Errorw("failed to send request to update metrics", "error", err.Error())
-				//continue
 				return fmt.Errorf("failed to send metrics: %w", err)
 			}
 
@@ -123,85 +122,6 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 		}
 	}
 }
-
-//func (a *Agent) StartAlterAgent(ctx context.Context) error {
-//	//tick := time.NewTicker(a.ReportInterval)
-//	//defer tick.Stop()
-//	//tickP := time.NewTicker(a.PollInterval)
-//	//defer tickP.Stop()
-//
-//	var metrics []models.Metrics
-//
-//	var pollCount int64 = 1
-//	var counter int64 = 1
-//	for {
-//
-//		select {
-//		case <-ctx.Done():
-//			return nil
-//		default:
-//			if counter%a.pollInterval == 0 {
-//				metrics = runtime.PullMetrics(pollCount)
-//				pollCount++
-//				a.log.Info("metrics collected")
-//			}
-//
-//			if counter%a.reportInterval == 0 {
-//				fmt.Println("pol: ", pollCount)
-//				if err := a.sendNewMetrics(metrics); err != nil {
-//					return err
-//				}
-//			}
-//			counter++
-//			time.Sleep(1 * time.Second)
-//		}
-//	}
-//}
-
-//
-//func (a *Agent) sendMetrics(models []models.Metrics) (err error) {
-//	counter := a.collect.GetCounter()
-//	err = a.cl.SendCounterMetric(counter)
-//	if err != nil {
-//		a.log.Errorw("failed to send counter",
-//			"error", err.Error())
-//		return fmt.Errorf("collect send counter metric failed: %w", err)
-//	}
-//
-//	a.log.Debugw("sent counter metric",
-//		"key", counter.ID,
-//		"value", counter.Delta)
-//	gaugeMap := a.collect.GetGauge()
-//
-//	gaugeMap.Range(func(key, value interface{}) bool {
-//		valFl := value.(float64)
-//		err = a.cl.SendGaugeMetric(models.Metrics{
-//			ID:    key.(string),
-//			MType: models.Gauge,
-//			Value: &valFl,
-//		})
-//
-//		if err != nil {
-//			a.log.Errorw("failed to send gauge",
-//				"key", key,
-//				"value", valFl,
-//				"error", err.Error())
-//			return true
-//		}
-//
-//		a.log.Debugw("sent gauge metric",
-//			"key", key,
-//			"value", valFl)
-//
-//		return true
-//	})
-//
-//	if err != nil {
-//		return fmt.Errorf("collect send gauge metric failed: %w", err)
-//	}
-//
-//	return nil
-//}
 
 func (a *Agent) sendNewMetrics(metrics []models.Metrics) error {
 	for _, m := range metrics {

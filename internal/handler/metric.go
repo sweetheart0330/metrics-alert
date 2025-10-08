@@ -66,6 +66,39 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h Handler) UpdateJSONMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.log.Errorf("failed to read body, err: %v", err)
+		http.Error(w, fmt.Sprintf("failed to read body, err: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	var metrics []models.Metrics
+	err = json.Unmarshal(body, &metrics)
+	if err != nil {
+		h.log.Errorf("failed to unmarshal body, err: %v", err)
+		http.Error(w, fmt.Sprintf("failed to unmarshal body, err: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	err = h.metric.UpdateMetrics(r.Context(), metrics)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to update metrics, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -150,13 +183,15 @@ func (h Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	metrics, err := h.metric.GetAllMetrics(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		h.log.Errorw("failed to get all metrics", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Выполняем шаблон с данными метрик
 	err = h.template.Execute(w, metrics)
 	if err != nil {
+		h.log.Errorw("failed to execute template", "error", err)
 		http.Error(w, "Ошибка выполнения шаблона: "+err.Error(),
 			http.StatusInternalServerError)
 		return

@@ -19,6 +19,7 @@ func NewRouter(h handler.Handler) *chi.Mux {
 	mux.Use(h.CompressHandle)
 	//mux.Use(h.GzipMiddlewareHandler)
 
+	mux.Post("/updates/", h.UpdateJSONMetrics)
 	mux.Route("/update/", func(r chi.Router) {
 		r.Post("/", h.UpdateJSONMetric)
 

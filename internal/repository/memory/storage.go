@@ -87,6 +87,25 @@ func (ms *MemStorage) UpdateGaugeMetric(_ context.Context, metric models.Metrics
 	return nil
 }
 
+func (ms *MemStorage) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	for _, m := range metrics {
+		switch m.MType {
+		case models.Counter:
+			err := ms.UpdateGaugeMetric(ctx, m)
+			if err != nil {
+				return fmt.Errorf("failed to update counter metric, err: %w", err)
+			}
+		case models.Gauge:
+			err := ms.UpdateGaugeMetric(ctx, m)
+			if err != nil {
+				return fmt.Errorf("failed to update gauge metric, err: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (ms *MemStorage) UpdateCounterMetric(_ context.Context, metric models.Metrics) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()

@@ -43,6 +43,16 @@ func (m *Metric) UpdateMetric(ctx context.Context, metric models.Metrics) error 
 	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metric.MType)
 }
 
+func (m *Metric) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	err := m.repo.UpdateMetrics(ctx, metrics)
+	if err != nil {
+		m.log.Errorw("failed to update metrics", "error", err)
+		return fmt.Errorf("failed to update metrics: %w", err)
+	}
+
+	return nil
+}
+
 func (m *Metric) GetMetric(ctx context.Context, metricID string) (models.Metrics, error) {
 	respMetric, err := m.repo.GetMetric(ctx, metricID)
 	if err != nil {

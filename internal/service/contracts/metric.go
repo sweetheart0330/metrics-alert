@@ -11,5 +11,6 @@ type MetricService interface {
 	UpdateMetric(ctx context.Context, metrics models.Metrics) error
 	GetMetric(ctx context.Context, metricID string) (models.Metrics, error)
 	GetAllMetrics(ctx context.Context) ([]models.Metrics, error)
+	UpdateMetrics(ctx context.Context, metrics []models.Metrics) error
 	Ping(ctx context.Context) error
 }
