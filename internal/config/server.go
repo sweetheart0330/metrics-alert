@@ -12,6 +12,7 @@ type ServerConfig struct {
 	StoreInterval   *uint  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DBAddress       string `env:"DATABASE_DSN"`
 }
 
 func GetServer() (host ServerConfig, err error) {
@@ -22,7 +23,7 @@ func GetServer() (host ServerConfig, err error) {
 	}
 
 	if len(fl.Host) == 0 {
-		flag.StringVar(&fl.Host, "a", "localhost:8080", "address and port to send requests")
+		flag.StringVar(&fl.Host, "a", ":8080", "address and port to send requests")
 	}
 
 	if fl.StoreInterval == nil {
@@ -35,6 +36,10 @@ func GetServer() (host ServerConfig, err error) {
 
 	if !fl.Restore {
 		flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
+	}
+
+	if len(fl.DBAddress) == 0 {
+		flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
 	}
 
 	flag.Parse()
