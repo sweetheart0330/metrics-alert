@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -115,7 +114,9 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 			//err := a.sendNewMetrics(metrics)
 			err := a.cl.SendMetricsBatch(metrics)
 			if err != nil {
-				return fmt.Errorf("failed to send metrics: %w", err)
+				a.log.Errorw("failed to send metrics", "error", err)
+				continue
+				//return fmt.Errorf("failed to send metrics: %w", err)
 			}
 
 			a.log.Info("metrics sent")
