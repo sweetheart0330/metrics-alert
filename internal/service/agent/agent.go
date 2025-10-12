@@ -112,14 +112,16 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 			a.log.Info("metrics collected")
 		case <-tick.C:
 			//err := a.sendNewMetrics(metrics)
-			err := a.cl.SendMetricsBatch(metrics)
-			if err != nil {
-				a.log.Errorw("failed to send metrics", "error", err)
-				continue
-				//return fmt.Errorf("failed to send metrics: %w", err)
-			}
+			if len(metrics) > 0 {
+				err := a.cl.SendMetricsBatch(metrics)
+				if err != nil {
+					a.log.Errorw("failed to send metrics", "error", err)
+					continue
+					//return fmt.Errorf("failed to send metrics: %w", err)
+				}
 
-			a.log.Info("metrics sent")
+				a.log.Info("metrics sent")
+			}
 		}
 	}
 }

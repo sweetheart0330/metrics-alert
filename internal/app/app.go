@@ -46,6 +46,7 @@ func RunAgent(ctx context.Context) error {
 
 func RunServer(ctx context.Context) error {
 	cfg, err := config.GetServer()
+	//cfg, err := config.NewServerConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get server flags, err: %w", err)
 	}

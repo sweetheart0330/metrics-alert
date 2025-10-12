@@ -2,9 +2,12 @@ package postgre
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 )
 
 const (
@@ -20,19 +23,24 @@ const (
 						ORDER BY timestamp DESC
 						LIMIT 1;
 						`
-	UpdateMetricsQuery = `INSERT INTO metrics (metric_id, metric_type, delta_value, gauge_value) 
-							VALUES ($1, $2, $3, $4)
+	UpdateMetricsCounterQuery = `INSERT INTO metrics (metric_id, metric_type, delta_value) 
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (metric_id) DO UPDATE
+                   SET
+                       metric_type = EXCLUDED.metric_type,
+                       delta_value = metrics.delta_value + EXCLUDED.delta_value;`
+	UpdateMetricsGaugeQuery = `INSERT INTO metrics (metric_id, metric_type, gauge_value) 
+							VALUES ($1, $2, $3)
 							ON CONFLICT (metric_id) DO UPDATE
 							SET
 						    	metric_type = EXCLUDED.metric_type,
-						    	delta_value  = EXCLUDED.delta_value,
 						    	gauge_value  = EXCLUDED.gauge_value;
 						`
 	GetAllMetrics = `SELECT metric_id, metric_type, delta_value, gauge_value FROM metrics`
 )
 
 func (db *Database) UpdateCounterMetric(ctx context.Context, metric models.Metrics) error {
-	_, err := db.pg.Exec(ctx, UpdateMetricsQuery, metric.ID, metric.MType, metric.Delta, nil)
+	_, err := db.pg.Exec(ctx, UpdateMetricsCounterQuery, metric.ID, metric.MType, metric.Delta)
 	if err != nil {
 		return fmt.Errorf("failed to create/update counter: %w", err)
 	}
@@ -41,7 +49,7 @@ func (db *Database) UpdateCounterMetric(ctx context.Context, metric models.Metri
 }
 
 func (db *Database) UpdateGaugeMetric(ctx context.Context, metric models.Metrics) error {
-	_, err := db.pg.Exec(ctx, UpdateMetricsQuery, metric.ID, metric.MType, nil, metric.Value)
+	_, err := db.pg.Exec(ctx, UpdateMetricsGaugeQuery, metric.ID, metric.MType, metric.Value)
 	if err != nil {
 		return fmt.Errorf("failed to create/update gauge: %w", err)
 	}
@@ -58,12 +66,12 @@ func (db *Database) UpdateMetrics(ctx context.Context, metrics []models.Metrics)
 	for _, metric := range metrics {
 		switch metric.MType {
 		case models.Gauge:
-			_, err = db.pg.Exec(ctx, UpdateMetricsQuery, metric.ID, metric.MType, nil, metric.Value)
+			_, err = db.pg.Exec(ctx, UpdateMetricsGaugeQuery, metric.ID, metric.MType, metric.Value)
 			if err != nil {
 				return fmt.Errorf("failed to create/update gauge metric: %w", err)
 			}
 		case models.Counter:
-			_, err = db.pg.Exec(ctx, UpdateMetricsQuery, metric.ID, metric.MType, metric.Delta, nil)
+			_, err = db.pg.Exec(ctx, UpdateMetricsCounterQuery, metric.ID, metric.MType, metric.Delta)
 			if err != nil {
 				return fmt.Errorf("failed to create/update counter metric: %w", err)
 			}
@@ -87,6 +95,10 @@ func (db *Database) GetMetric(ctx context.Context, metricID string) (models.Metr
 		&m.Value,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.Metrics{}, servMetric.ErrMetricNotFound
+		}
+
 		return models.Metrics{}, fmt.Errorf("failed to send query: %w", err)
 	}
 
