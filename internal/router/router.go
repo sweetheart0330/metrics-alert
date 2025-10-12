@@ -36,7 +36,10 @@ func NewRouter(h handler.Handler) *chi.Mux {
 		)
 	})
 
+	mux.Post("/updates/", h.UpdateJSONMetrics)
+
 	mux.Get("/", h.GetAllMetrics)
+	mux.Get("/ping", h.Ping)
 
 	return mux
 }
