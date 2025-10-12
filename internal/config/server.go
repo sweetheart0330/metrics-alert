@@ -79,27 +79,5 @@ func GetServer() (host ServerConfig, err error) {
 		return ServerConfig{}, fmt.Errorf("failed to parse server flags, err: %w", err)
 	}
 
-	//if len(fl.Host) == 0 {
-	//	flag.StringVar(&fl.Host, "a", ":8080", "address and port to send requests")
-	//}
-	//
-	//if fl.StoreInterval == nil {
-	//	fl.StoreInterval = flag.Uint("i", 300, "frequency of storing metrics")
-	//}
-	//
-	//if len(fl.FileStoragePath) == 0 {
-	//	flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
-	//}
-	//
-	//if !fl.Restore {
-	//	flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
-	//}
-	//
-	//if len(fl.DBAddress) == 0 {
-	//	flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
-	//}
-	//
-	//flag.Parse()
-
 	return fl, nil
 }
