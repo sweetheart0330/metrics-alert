@@ -12,32 +12,24 @@ type ServerConfig struct {
 	StoreInterval   *uint  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DBAddress       string `env:"DATABASE_DSN"`
+	SecretKey       string `env:"KEY"`
 }
 
 func GetServer() (host ServerConfig, err error) {
 	fl := ServerConfig{}
+	flag.StringVar(&fl.Host, "a", ":8080", "address and port to send requests")
+	fl.StoreInterval = flag.Uint("i", 300, "frequency of storing metrics")
+	flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
+	flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
+	flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
+	flag.StringVar(&fl.SecretKey, "k", "", "secret key")
+	flag.Parse()
+
 	err = env.Parse(&fl)
 	if err != nil {
 		return ServerConfig{}, fmt.Errorf("failed to parse server flags, err: %w", err)
 	}
-
-	if len(fl.Host) == 0 {
-		flag.StringVar(&fl.Host, "a", "localhost:8080", "address and port to send requests")
-	}
-
-	if fl.StoreInterval == nil {
-		fl.StoreInterval = flag.Uint("i", 300, "frequency of storing metrics")
-	}
-
-	if len(fl.FileStoragePath) == 0 {
-		flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
-	}
-
-	if !fl.Restore {
-		flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
-	}
-
-	flag.Parse()
 
 	return fl, nil
 }
