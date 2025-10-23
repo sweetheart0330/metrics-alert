@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -152,18 +153,17 @@ func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response
 		if err != nil {
 			return nil, fmt.Errorf("failed to create hash, err: %w", err)
 		}
-		req.Header.Set("HashSHA256", string(hash))
+		req.Header.Set("HashSHA256", hex.EncodeToString(hash))
 	}
 
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
-	//LogIncomingRequest(req)
+
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not send request: %w", err)
 	}
-	//	LogOutgoingResponse(resp)
 	return resp, nil
 }
 

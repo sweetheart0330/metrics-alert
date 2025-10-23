@@ -13,6 +13,7 @@ type ServerConfig struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
 	DBAddress       string `env:"DATABASE_DSN"`
+	SecretKey       string `env:"KEY"`
 }
 
 func GetServer() (host ServerConfig, err error) {
@@ -22,6 +23,7 @@ func GetServer() (host ServerConfig, err error) {
 	flag.StringVar(&fl.FileStoragePath, "f", "storage.txt", "file to save metrics")
 	flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
 	flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
+	flag.StringVar(&fl.SecretKey, "k", "", "secret key")
 	flag.Parse()
 
 	err = env.Parse(&fl)
