@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
 	"go.uber.org/zap"
 )
 
@@ -93,11 +95,15 @@ func (c Client) SendMetricsBatch(metrics []models.Metrics, log *zap.SugaredLogge
 	for retry := startDelay; retry <= maxRetries; retry += deltaDelay {
 		err = c.sendMetricBatch(metrics)
 		if err != nil {
-			log.Warnw("failed to send metrics batch, trying one more time",
-				"retry", retry,
-				"error", err)
-			time.Sleep(time.Duration(retry) * time.Second)
-			continue
+			if errors.Is(err, metric.ErrConnRepo) {
+				log.Warnw("failed to send metrics batch, trying one more time",
+					"retry", retry,
+					"error", err)
+				time.Sleep(time.Duration(retry) * time.Second)
+				continue
+			}
+
+			return err
 		}
 
 		return nil
