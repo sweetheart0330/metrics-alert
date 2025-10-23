@@ -61,7 +61,8 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 		case <-tick.C:
 			//err := a.sendNewMetrics(metrics)
 			if len(metrics) > 0 {
-				err := a.cl.SendMetricsBatch(metrics)
+
+				err := a.cl.SendMetricsBatch(metrics, a.log)
 				if err != nil {
 					a.log.Errorw("failed to send metrics", "error", err)
 					continue

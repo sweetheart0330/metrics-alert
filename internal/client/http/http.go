@@ -10,13 +10,19 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"go.uber.org/zap"
 )
 
 const (
 	updMetricPath   = "/update/"
 	updMetricsBatch = "/updates/"
+
+	startDelay = 1
+	deltaDelay = 2
+	maxRetries = 5
 )
 
 type Config struct {
@@ -83,7 +89,24 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 	return nil
 }
 
-func (c Client) SendMetricsBatch(metrics []models.Metrics) error {
+func (c Client) SendMetricsBatch(metrics []models.Metrics, log *zap.SugaredLogger) (err error) {
+	for retry := startDelay; retry <= maxRetries; retry += deltaDelay {
+		err = c.sendMetricBatch(metrics)
+		if err != nil {
+			log.Warnw("failed to send metrics batch, trying one more time",
+				"retry", retry,
+				"error", err)
+			time.Sleep(time.Duration(retry) * time.Second)
+			continue
+		}
+
+		return nil
+	}
+
+	return err
+}
+
+func (c Client) sendMetricBatch(metrics []models.Metrics) error {
 	resp, err := c.sendJSONRequest(metrics, updMetricsBatch)
 	if err != nil {
 		return fmt.Errorf("failed to send counter metric, err: %w", err)
@@ -101,7 +124,6 @@ func (c Client) SendMetricsBatch(metrics []models.Metrics) error {
 
 	return nil
 }
-
 func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response, error) {
 	reqURL := formJSONURL(c.cfg.Host, method)
 	jsonMetric, err := json.Marshal(&data)
