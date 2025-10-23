@@ -3,6 +3,8 @@ package http
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,8 +20,10 @@ const (
 )
 
 type Config struct {
-	Host string `env:"ADDRESS"`
+	Host      string
+	SecretKey string
 }
+
 type Client struct {
 	cfg Config
 	cl  *http.Client
@@ -115,6 +119,14 @@ func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
+	if len(c.cfg.SecretKey) == 0 {
+		hash, err := c.setHashToHeader(jsonMetric)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create hash, err: %w", err)
+		}
+		req.Header.Set("HashSHA256", string(hash))
+	}
+
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
@@ -125,6 +137,17 @@ func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response
 	}
 	//	LogOutgoingResponse(resp)
 	return resp, nil
+}
+
+func (c Client) setHashToHeader(body []byte) ([]byte, error) {
+	h := hmac.New(sha256.New, []byte(c.cfg.SecretKey))
+	_, err := h.Write(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to body to hmac, err: %w", err)
+	}
+	dst := h.Sum(nil)
+
+	return dst, nil
 }
 
 func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, error) {

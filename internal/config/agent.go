@@ -11,6 +11,7 @@ type AgentConfig struct {
 	Host           string `env:"ADDRESS"`
 	ReportInterval uint   `env:"REPORT_INTERVAL"`
 	PollInterval   uint   `env:"POLL_INTERVAL"`
+	SecretKey      int    `env:"KEY"`
 }
 
 func GetAgent() (fl AgentConfig, err error) {
@@ -29,6 +30,10 @@ func GetAgent() (fl AgentConfig, err error) {
 
 	if fl.PollInterval == 0 {
 		flag.UintVar(&fl.PollInterval, "p", 2, "interval between collecting metrics")
+	}
+
+	if fl.SecretKey == 0 {
+		flag.IntVar(&fl.SecretKey, "k", 0, "secret key")
 	}
 
 	flag.Parse()
