@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	servMetric "github.com/sweetheart0330/metrics-alert/internal/service/metric"
 )
@@ -42,7 +45,7 @@ const (
 func (db *Database) UpdateCounterMetric(ctx context.Context, metric models.Metrics) error {
 	_, err := db.pg.Exec(ctx, UpdateMetricsCounterQuery, metric.ID, metric.MType, metric.Delta)
 	if err != nil {
-		return fmt.Errorf("failed to create/update counter: %w", err)
+		return handleError(fmt.Errorf("failed to create/update counter: %w", err))
 	}
 
 	return nil
@@ -51,7 +54,7 @@ func (db *Database) UpdateCounterMetric(ctx context.Context, metric models.Metri
 func (db *Database) UpdateGaugeMetric(ctx context.Context, metric models.Metrics) error {
 	_, err := db.pg.Exec(ctx, UpdateMetricsGaugeQuery, metric.ID, metric.MType, metric.Value)
 	if err != nil {
-		return fmt.Errorf("failed to create/update gauge: %w", err)
+		return handleError(fmt.Errorf("failed to create/update gauge: %w", err))
 	}
 
 	return nil
@@ -60,7 +63,7 @@ func (db *Database) UpdateGaugeMetric(ctx context.Context, metric models.Metrics
 func (db *Database) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
 	tx, err := db.pg.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to start transaction, err: %w", err)
+		return handleError(fmt.Errorf("failed to start transaction, err: %w", err))
 	}
 
 	for _, metric := range metrics {
@@ -68,19 +71,19 @@ func (db *Database) UpdateMetrics(ctx context.Context, metrics []models.Metrics)
 		case models.Gauge:
 			_, err = db.pg.Exec(ctx, UpdateMetricsGaugeQuery, metric.ID, metric.MType, metric.Value)
 			if err != nil {
-				return fmt.Errorf("failed to create/update gauge metric: %w", err)
+				return handleError(fmt.Errorf("failed to create/update gauge metric: %w", err))
 			}
 		case models.Counter:
 			_, err = db.pg.Exec(ctx, UpdateMetricsCounterQuery, metric.ID, metric.MType, metric.Delta)
 			if err != nil {
-				return fmt.Errorf("failed to create/update counter metric: %w", err)
+				return handleError(fmt.Errorf("failed to create/update counter metric: %w", err))
 			}
 		}
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction, err: %w", err)
+		return handleError(fmt.Errorf("failed to commit transaction, err: %w", err))
 	}
 
 	return nil
@@ -132,4 +135,18 @@ func (db *Database) GetAllMetrics(ctx context.Context) ([]models.Metrics, error)
 	}
 
 	return metrics, nil
+}
+
+func handleError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		// Проверяем на Connection Exception
+		if pgerrcode.IsConnectionException(pgErr.Code) {
+			log.Printf("Ошибка подключения: %s (код: %s)", pgErr.Message, pgErr.Code)
+			// Здесь можно добавить логику переподключения
+			return fmt.Errorf("%w, err: %w", servMetric.ErrConnRepo, err)
+		}
+	}
+
+	return err
 }

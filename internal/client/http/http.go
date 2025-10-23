@@ -119,7 +119,7 @@ func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
-	if len(c.cfg.SecretKey) == 0 {
+	if len(c.cfg.SecretKey) != 0 {
 		hash, err := c.setHashToHeader(jsonMetric)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create hash, err: %w", err)

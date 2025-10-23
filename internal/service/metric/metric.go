@@ -16,6 +16,7 @@ import (
 var (
 	ErrMetricNotFound    = errors.New("metric not found")
 	ErrUnknownMetricType = errors.New("unknown metric type")
+	ErrConnRepo          = errors.New("connection repository error")
 )
 
 type Metric struct {

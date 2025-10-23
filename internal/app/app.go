@@ -34,7 +34,7 @@ func RunAgent(ctx context.Context) error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
-	clCfg := httpCl.Config{Host: "http://" + cfg.Host}
+	clCfg := httpCl.Config{Host: "http://" + cfg.Host, SecretKey: cfg.SecretKey}
 	cl := httpCl.NewClient(clCfg)
 	//ag := runtime.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
 	serv := servAgent.NewAgent(cl, nil, cfg.ReportInterval, cfg.PollInterval, &sugar)

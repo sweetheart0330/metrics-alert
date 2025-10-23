@@ -40,58 +40,6 @@ func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval uin
 	}
 }
 
-//func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval, pollInterval uint, log *zap.SugaredLogger) *Agent {
-//	return &Agent{
-//		cl:      cl,
-//		collect: agent,
-//		Config:  Config{ReportInterval: time.Duration(reportInterval) * time.Second},
-//		log:     log,
-//
-//		pollCount:      1,
-//		counter:        1,
-//		pollInterval:   int(pollInterval),
-//		reportInterval: int(reportInterval),
-//	}
-//}
-
-//	func (a *Agent) StartAgent(ctx context.Context) error {
-//		for {
-//			if err := a.Run(); err != nil {
-//				fmt.Println(err)
-//			}
-//			time.Sleep(1 * time.Second)
-//		}
-//	}
-//
-//	func (a *Agent) Run() error {
-//		var metrics []models.Metrics
-//
-//		if a.counter%a.pollInterval == 0 {
-//			fmt.Println("collect metrics")
-//			metrics = runtime.PullMetrics(a.pollCount)
-//			a.pollCount++
-//		}
-//
-//		if a.counter%a.reportInterval == 0 {
-//			fmt.Println("report metrics")
-//			for _, metric := range metrics {
-//				if metric.MType == models.Gauge {
-//					if err := a.cl.SendGaugeMetric(metric); err != nil {
-//						return err
-//					}
-//				} else if metric.MType == models.Counter {
-//					if err := a.cl.SendCounterMetric(metric); err != nil {
-//						return err
-//					}
-//				}
-//			}
-//
-//		}
-//		a.counter++
-//
-//		return nil
-//
-// }
 func (a *Agent) StartAgent(ctx context.Context) error {
 	tick := time.NewTicker(a.ReportInterval)
 	defer tick.Stop()
