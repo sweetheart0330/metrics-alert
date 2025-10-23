@@ -19,7 +19,7 @@ const (
 	compressReqHeader  = "Accept-Encoding"
 	compressRespHeader = "Content-Encoding"
 	compressFormat     = "gzip"
-	hashSumHeader      = "Hashsha256"
+	hashSumHeader      = "HashSHA256"
 	contentHeader      = "Content-Type"
 )
 
