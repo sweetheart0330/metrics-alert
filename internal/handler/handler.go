@@ -63,9 +63,10 @@ type Handler struct {
 	template  *template.Template
 	log       zap.SugaredLogger
 	secretKey string
+	rateLimit int
 }
 
-func NewHandler(metric contracts.MetricService, log zap.SugaredLogger, secretKey string) (Handler, error) {
+func NewHandler(metric contracts.MetricService, log zap.SugaredLogger, secretKey string, rateLimit int) (Handler, error) {
 	tmplPath := filepath.Join("internal", "handler", "template", "metrics.html")
 	tmpl, err := template.
 		New("metrics.html").
@@ -75,5 +76,11 @@ func NewHandler(metric contracts.MetricService, log zap.SugaredLogger, secretKey
 		return Handler{}, err
 	}
 
-	return Handler{metric: metric, template: tmpl, log: log, secretKey: secretKey}, nil
+	return Handler{
+		metric:    metric,
+		template:  tmpl,
+		log:       log,
+		secretKey: secretKey,
+		rateLimit: rateLimit,
+	}, nil
 }

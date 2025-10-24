@@ -80,6 +80,24 @@ func (h Handler) CheckHashSum(next http.Handler) http.Handler {
 	})
 }
 
+// PoolWorker создает middleware с ограничением параллельных запросов
+func (h Handler) PoolWorker() func(http.Handler) http.Handler {
+	sem := make(chan struct{}, h.rateLimit)
+
+	fmt.Println("ratelimit", h.rateLimit)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+				next.ServeHTTP(w, r)
+			default:
+				http.Error(w, "Server is too busy, try again later", http.StatusServiceUnavailable)
+			}
+		})
+	}
+}
+
 func (h Handler) CompressHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get(compressReqHeader), compressFormat) {

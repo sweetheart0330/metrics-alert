@@ -14,6 +14,7 @@ type ServerConfig struct {
 	Restore         bool   `env:"RESTORE"`
 	DBAddress       string `env:"DATABASE_DSN"`
 	SecretKey       string `env:"KEY"`
+	RateLimit       int    `env:"RATE_LIMIT"`
 }
 
 func GetServer() (host ServerConfig, err error) {
@@ -24,6 +25,7 @@ func GetServer() (host ServerConfig, err error) {
 	flag.BoolVar(&fl.Restore, "r", false, "downloading metrics at the start from a file")
 	flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
 	flag.StringVar(&fl.SecretKey, "k", "", "secret key")
+	flag.IntVar(&fl.RateLimit, "l", 10, "rate limit")
 	flag.Parse()
 
 	err = env.Parse(&fl)

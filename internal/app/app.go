@@ -69,7 +69,7 @@ func RunServer(ctx context.Context) error {
 		return fmt.Errorf("failed to init metric service, err: %w", err)
 	}
 
-	h, err := handler.NewHandler(MetricServ, sugar, cfg.SecretKey)
+	h, err := handler.NewHandler(MetricServ, sugar, cfg.SecretKey, cfg.RateLimit)
 	if err != nil {
 		return fmt.Errorf("failed to create new handler: %w", err)
 	}
