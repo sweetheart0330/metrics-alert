@@ -8,12 +8,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/shirou/gopsutil/v4/cpu"
+	util "github.com/shirou/gopsutil/v4/mem"
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"go.uber.org/zap"
 )
 
 const (
-	//gauge metrics
+	//metricMap metrics
 	AllocKey         = "Alloc"
 	BuckHashSysKey   = "BuckHashSys"
 	FreesKey         = "Frees"
@@ -42,6 +44,9 @@ const (
 	SysKey           = "Sys"
 	TotalAllocKey    = "TotalAlloc"
 	RandomValue      = "RandomValue"
+	TotalMemory      = "TotalMemory"
+	FreeMemory       = "FreeMemory"
+	CPUutilization1  = "CPUutilization1"
 	//counter metrics
 	PollCount = "PollCount"
 )
@@ -50,29 +55,25 @@ type Config struct {
 	PollInterval time.Duration
 }
 type Metrics struct {
-	gauge        sync.Map
-	mu           sync.RWMutex
+	metricMap    sync.Map
 	counter      atomic.Int64
 	pollInterval time.Duration
 	log          *zap.SugaredLogger
 }
 
-//func NewRuntimeMetrics(ctx context.Context, pollInterval uint, log *zap.SugaredLogger) *Metrics {
-//	metric := &Metrics{
-//		pollInterval: time.Duration(pollInterval) * time.Second,
-//		log:          log,
-//	}
-//
-//	go metric.startCollectMetrics(ctx)
-//
-//	return metric
-//}
+func NewRuntimeMetrics(ctx context.Context, pollInterval uint, log *zap.SugaredLogger) *Metrics {
+	metric := &Metrics{
+		pollInterval: time.Duration(pollInterval) * time.Second,
+		log:          log,
+	}
 
-func (r *Metrics) GetGauge() *sync.Map {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	go metric.startCollectMetrics(ctx)
 
-	return &r.gauge
+	return metric
+}
+
+func (r *Metrics) GetMetrics() *sync.Map {
+	return &r.metricMap
 }
 
 func (r *Metrics) GetCounter() models.Metrics {
@@ -92,52 +93,72 @@ func (r *Metrics) startCollectMetrics(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+			r.collectUtilMetrics()
 			r.collectMetrics()
+
+			r.log.Debug("metrics collected")
 		}
 	}
 }
 
-func (r *Metrics) collectMetrics() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *Metrics) collectUtilMetrics() {
+	v, _ := util.VirtualMemory()
 
+	r.storeGaugeMetric(TotalMemory, float64(v.Total))
+	r.storeGaugeMetric(FreeMemory, float64(v.Free))
+
+	percentages, _ := cpu.Percent(time.Second, false)
+	r.storeGaugeMetric(CPUutilization1, percentages[0])
+}
+
+func (r *Metrics) collectMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	r.gauge.Store(AllocKey, float64(m.Alloc))
-	r.gauge.Store(BuckHashSysKey, float64(m.BuckHashSys))
-	r.gauge.Store(FreesKey, float64(m.Frees))
-	r.gauge.Store(GCCPUFractionKey, m.GCCPUFraction)
-	r.gauge.Store(GCSysKey, float64(m.GCSys))
-	r.gauge.Store(HeapAllocKey, float64(m.HeapAlloc))
-	r.gauge.Store(HeapIdleKey, float64(m.HeapIdle))
-	r.gauge.Store(HeapInuseKey, float64(m.HeapInuse))
-	r.gauge.Store(HeapObjectsKey, float64(m.HeapObjects))
-	r.gauge.Store(HeapReleasedKey, float64(m.HeapReleased))
-	r.gauge.Store(HeapSysKey, float64(m.HeapSys))
-	r.gauge.Store(LastGCKey, float64(m.LastGC))
-	r.gauge.Store(LookupsKey, float64(m.Lookups))
-	r.gauge.Store(MCacheInuseKey, float64(m.MCacheInuse))
-	r.gauge.Store(MCacheSysKey, float64(m.MCacheSys))
-	r.gauge.Store(MSpanInuseKey, float64(m.MSpanInuse))
-	r.gauge.Store(MSpanSysKey, float64(m.MSpanSys))
-	r.gauge.Store(MallocsKey, float64(m.Mallocs))
-	r.gauge.Store(NextGCKey, float64(m.NextGC))
-	r.gauge.Store(NumForcedGCKey, float64(m.NumForcedGC))
-	r.gauge.Store(NumGCKey, float64(m.NumGC))
-	r.gauge.Store(OtherSysKey, float64(m.OtherSys))
-	r.gauge.Store(PauseTotalNsKey, float64(m.PauseTotalNs))
-	r.gauge.Store(StackInuseKey, float64(m.StackInuse))
-	r.gauge.Store(StackSysKey, float64(m.StackSys))
-	r.gauge.Store(SysKey, float64(m.Sys))
-	r.gauge.Store(TotalAllocKey, float64(m.TotalAlloc))
-	r.gauge.Store(RandomValue, rand.Float64())
+	r.storeGaugeMetric(AllocKey, float64(m.Alloc))
+	r.storeGaugeMetric(BuckHashSysKey, float64(m.BuckHashSys))
+	r.storeGaugeMetric(FreesKey, float64(m.Frees))
+	r.storeGaugeMetric(GCCPUFractionKey, float64(m.GCCPUFraction))
+	r.storeGaugeMetric(GCSysKey, float64(m.GCSys))
+	r.storeGaugeMetric(HeapAllocKey, float64(m.HeapAlloc))
+	r.storeGaugeMetric(HeapIdleKey, float64(m.HeapIdle))
+	r.storeGaugeMetric(HeapInuseKey, float64(m.HeapInuse))
+	r.storeGaugeMetric(HeapObjectsKey, float64(m.HeapObjects))
+	r.storeGaugeMetric(HeapReleasedKey, float64(m.HeapReleased))
+	r.storeGaugeMetric(HeapSysKey, float64(m.HeapSys))
+	r.storeGaugeMetric(LastGCKey, float64(m.LastGC))
+	r.storeGaugeMetric(LookupsKey, float64(m.Lookups))
+	r.storeGaugeMetric(MCacheInuseKey, float64(m.MCacheInuse))
+	r.storeGaugeMetric(MCacheSysKey, float64(m.MCacheSys))
+	r.storeGaugeMetric(MSpanInuseKey, float64(m.MSpanInuse))
+	r.storeGaugeMetric(MSpanSysKey, float64(m.MSpanSys))
+	r.storeGaugeMetric(MallocsKey, float64(m.Mallocs))
+	r.storeGaugeMetric(NextGCKey, float64(m.NextGC))
+	r.storeGaugeMetric(NumForcedGCKey, float64(m.NumForcedGC))
+	r.storeGaugeMetric(NumGCKey, float64(m.NumGC))
+	r.storeGaugeMetric(OtherSysKey, float64(m.OtherSys))
+	r.storeGaugeMetric(PauseTotalNsKey, float64(m.PauseTotalNs))
+	r.storeGaugeMetric(StackInuseKey, float64(m.StackInuse))
+	r.storeGaugeMetric(StackSysKey, float64(m.StackSys))
+	r.storeGaugeMetric(SysKey, float64(m.Sys))
+	r.storeGaugeMetric(TotalAllocKey, float64(m.TotalAlloc))
+	r.storeGaugeMetric(RandomValue, rand.Float64())
 
-	r.counter.Add(1)
-
-	r.log.Info("gauge collected")
+	newCount := r.counter.Add(1)
+	r.metricMap.Store(PollCount, models.Metrics{
+		ID:    PollCount,
+		MType: models.Counter,
+		Delta: &newCount,
+	})
 }
 
+func (r *Metrics) storeGaugeMetric(key string, value float64) {
+	r.metricMap.Store(key, models.Metrics{
+		ID:    key,
+		MType: models.Gauge,
+		Value: &value,
+	})
+}
 func PullMetrics(pollCount int64) []models.Metrics {
 	metRuntime := runtime.MemStats{}
 

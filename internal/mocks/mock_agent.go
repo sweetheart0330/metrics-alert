@@ -56,9 +56,9 @@ func (mr *MockMetricCollectorMockRecorder) GetCounter() *gomock.Call {
 }
 
 // GetGauge mocks base method.
-func (m *MockMetricCollector) GetGauge() *sync.Map {
+func (m *MockMetricCollector) GetMetrics() *sync.Map {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGauge")
+	ret := m.ctrl.Call(m, "GetMetrics")
 	ret0, _ := ret[0].(*sync.Map)
 	return ret0
 }
@@ -66,5 +66,5 @@ func (m *MockMetricCollector) GetGauge() *sync.Map {
 // GetGauge indicates an expected call of GetGauge.
 func (mr *MockMetricCollectorMockRecorder) GetGauge() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGauge", reflect.TypeOf((*MockMetricCollector)(nil).GetGauge))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetrics", reflect.TypeOf((*MockMetricCollector)(nil).GetMetrics))
 }

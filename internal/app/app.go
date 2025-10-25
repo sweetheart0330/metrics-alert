@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
 	"time"
 
+	rn "github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	"github.com/sweetheart0330/metrics-alert/internal/config"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
@@ -36,8 +38,8 @@ func RunAgent(ctx context.Context) error {
 	sugar := *logger.Sugar()
 	clCfg := httpCl.Config{Host: "http://" + cfg.Host, SecretKey: cfg.SecretKey}
 	cl := httpCl.NewClient(clCfg)
-	//ag := runtime.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
-	serv := servAgent.NewAgent(cl, nil, cfg.ReportInterval, cfg.PollInterval, &sugar)
+	ag := rn.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
+	serv := servAgent.NewAgent(cl, ag, cfg.ReportInterval, cfg.PollInterval, &sugar)
 
 	sugar.Info("Agent started")
 

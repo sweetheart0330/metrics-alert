@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/sweetheart0330/metrics-alert/internal/agent"
-	"github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	"github.com/sweetheart0330/metrics-alert/internal/client"
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
 	"go.uber.org/zap"
@@ -43,25 +42,17 @@ func NewAgent(cl client.IClient, agent agent.MetricCollector, reportInterval uin
 func (a *Agent) StartAgent(ctx context.Context) error {
 	tick := time.NewTicker(a.ReportInterval)
 	defer tick.Stop()
-	tickP := time.NewTicker(a.PollInterval)
-	defer tickP.Stop()
 
 	var metrics []models.Metrics
 
-	counter := 0
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-tickP.C:
-			metrics = runtime.PullMetrics(int64(counter))
-			counter++
-
-			a.log.Info("metrics collected")
 		case <-tick.C:
 			//err := a.sendNewMetrics(metrics)
+			metrics = a.formMetricsSlice()
 			if len(metrics) > 0 {
-
 				err := a.cl.SendMetricsBatch(metrics, a.log)
 				if err != nil {
 					a.log.Errorw("failed to send metrics", "error", err)
@@ -75,20 +66,18 @@ func (a *Agent) StartAgent(ctx context.Context) error {
 	}
 }
 
-func (a *Agent) sendNewMetrics(metrics []models.Metrics) error {
-	for _, m := range metrics {
-		if m.MType == models.Gauge {
-			err := a.cl.SendGaugeMetric(m)
-			if err != nil {
-				a.log.Error("failed to send gauge", zap.Error(err))
-			}
-		} else if m.MType == models.Counter {
-			err := a.cl.SendCounterMetric(m)
-			if err != nil {
-				a.log.Warn("failed to send counter metric", zap.Error(err))
-			}
+func (a *Agent) formMetricsSlice() (metrics []models.Metrics) {
+	metricsMap := a.collect.GetMetrics()
+	metricsMap.Range(func(key, value interface{}) bool {
+		m, ok := value.(models.Metrics)
+		if !ok {
+			a.log.Errorw("failed to convert metrics", "key", key, "value", value)
+			return false
 		}
-	}
 
-	return nil
+		metrics = append(metrics, m)
+		return true
+	})
+
+	return metrics
 }

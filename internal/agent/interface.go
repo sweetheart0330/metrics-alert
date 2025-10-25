@@ -8,6 +8,6 @@ import (
 
 //go:generate mockgen -source=./interface.go -destination=./../mocks/mock_agent.go
 type MetricCollector interface {
-	GetGauge() *sync.Map
+	GetMetrics() *sync.Map
 	GetCounter() models.Metrics
 }
