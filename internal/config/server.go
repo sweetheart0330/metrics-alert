@@ -15,6 +15,8 @@ type ServerConfig struct {
 	DBAddress       string `env:"DATABASE_DSN"`
 	SecretKey       string `env:"KEY"`
 	RateLimit       int    `env:"RATE_LIMIT"`
+	AuditFile       string `env:"AUDIT_FILE"`
+	AuditURL        string `env:"AUDIT_URL"`
 }
 
 func GetServer() (host ServerConfig, err error) {
@@ -26,6 +28,8 @@ func GetServer() (host ServerConfig, err error) {
 	flag.StringVar(&fl.DBAddress, "d", "", "downloading metrics at the start from a file")
 	flag.StringVar(&fl.SecretKey, "k", "", "secret key")
 	flag.IntVar(&fl.RateLimit, "l", 10, "rate limit")
+	flag.StringVar(&fl.AuditFile, "observer-file", "", "observer file")
+	flag.StringVar(&fl.AuditURL, "observer-url", "", "observer url")
 	flag.Parse()
 
 	err = env.Parse(&fl)

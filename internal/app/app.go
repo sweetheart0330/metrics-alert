@@ -9,13 +9,15 @@ import (
 	"time"
 
 	rn "github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
+	"github.com/sweetheart0330/metrics-alert/internal/client/http/audit"
+	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http/metric"
 	"github.com/sweetheart0330/metrics-alert/internal/config"
+	"github.com/sweetheart0330/metrics-alert/internal/observer"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/postgre"
 	"golang.org/x/sync/errgroup"
 
-	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
 	"github.com/sweetheart0330/metrics-alert/internal/handler"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/memory"
 	"github.com/sweetheart0330/metrics-alert/internal/router"
@@ -66,7 +68,12 @@ func RunServer(ctx context.Context) error {
 		return fmt.Errorf("failed to init repo, err: %w", err)
 	}
 
-	MetricServ, err := metric.New(repo, sugar)
+	publisher, err := addObserver(ctx, cfg, sugar)
+	if err != nil {
+		return fmt.Errorf("failed to init publisher, err: %w", err)
+	}
+
+	MetricServ, err := metric.New(repo, sugar, publisher)
 	if err != nil {
 		return fmt.Errorf("failed to init metric service, err: %w", err)
 	}
@@ -104,6 +111,25 @@ func RunServer(ctx context.Context) error {
 	})
 
 	return eg.Wait()
+}
+
+func addObserver(ctx context.Context, cfg config.ServerConfig, log zap.SugaredLogger) (observer.Publisher, error) {
+	publisher := observer.NewAuditPublisher(&log)
+	if len(cfg.AuditFile) != 0 {
+		storage, err := filestore.NewAuditFileStorage(cfg.AuditFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init audit file storage, err: %w", err)
+		}
+
+		publisher.Register(storage)
+	}
+
+	if len(cfg.AuditURL) != 0 {
+		cl := audit.NewClient(cfg.AuditURL)
+		publisher.Register(cl)
+	}
+
+	return publisher, nil
 }
 
 func chooseRepo(ctx context.Context, log *zap.SugaredLogger, cfg config.ServerConfig) (interfaces.IRepository, error) {

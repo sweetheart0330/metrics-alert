@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -20,7 +22,9 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.metric.UpdateMetric(r.Context(), *metric)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -43,8 +47,9 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-
-	err = h.metric.UpdateMetric(r.Context(), *metric)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metric, err: %v", err), http.StatusBadRequest)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -90,7 +95,9 @@ func (h Handler) UpdateJSONMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.metric.UpdateMetrics(r.Context(), metrics)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	err = h.metric.UpdateMetrics(ctx, metrics)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metrics, err: %v", err), http.StatusInternalServerError)
 		return
@@ -108,7 +115,7 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
-		// http.Error уже устанавливает заголовки и статус
+		// metric.Error уже устанавливает заголовки и статус
 		http.Error(w, fmt.Sprintf("failed to get body, err: %v", err), http.StatusBadRequest)
 		h.log.Error("failed to get body, err: %v", err)
 		return
@@ -284,4 +291,12 @@ func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr // если не удалось разобрать
+	}
+	return host
 }

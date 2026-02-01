@@ -41,7 +41,7 @@ func (h Handler) CheckHashSum(next http.Handler) http.Handler {
 		receivedSignature := r.Header.Get(hashSumHeader) // или как ты его назвал
 		if receivedSignature == "" {
 			next.ServeHTTP(w, r)
-			//http.Error(w, "Missing HMAC signature", http.StatusForbidden)
+			//metric.Error(w, "Missing HMAC signature", metric.StatusForbidden)
 			return
 		}
 

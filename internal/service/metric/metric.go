@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/sweetheart0330/metrics-alert/internal/observer"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
 	"go.uber.org/zap"
 
@@ -22,12 +24,14 @@ var (
 type Metric struct {
 	repo interfaces.IRepository
 	log  zap.SugaredLogger
+	obs  observer.Publisher
 }
 
-func New(repo interfaces.IRepository, log zap.SugaredLogger) (*Metric, error) {
+func New(repo interfaces.IRepository, log zap.SugaredLogger, observer observer.Publisher) (*Metric, error) {
 	metric := &Metric{
 		repo: repo,
 		log:  log,
+		obs:  observer,
 	}
 
 	return metric, nil
@@ -36,9 +40,21 @@ func New(repo interfaces.IRepository, log zap.SugaredLogger) (*Metric, error) {
 func (m *Metric) UpdateMetric(ctx context.Context, metric models.Metrics) error {
 	switch metric.MType {
 	case models.Counter:
-		return m.repo.UpdateCounterMetric(ctx, metric)
+		err := m.repo.UpdateCounterMetric(ctx, metric)
+		if err != nil {
+			return fmt.Errorf("failed to update counter metric: %w", err)
+		}
+
+		m.sendAuditFromSingleMetric(ctx, metric)
+		return nil
 	case models.Gauge:
-		return m.repo.UpdateGaugeMetric(ctx, metric)
+		err := m.repo.UpdateGaugeMetric(ctx, metric)
+		if err != nil {
+			return fmt.Errorf("failed to update gauge metric: %w", err)
+		}
+
+		m.sendAuditFromSingleMetric(ctx, metric)
+		return nil
 	}
 
 	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metric.MType)
@@ -50,6 +66,9 @@ func (m *Metric) UpdateMetrics(ctx context.Context, metrics []models.Metrics) er
 		m.log.Errorw("failed to update metrics", "error", err)
 		return fmt.Errorf("failed to update metrics: %w", err)
 	}
+
+	ev := m.formMetrics(metrics)
+	m.obs.NotifyObservers(ctx, ev)
 
 	return nil
 }
@@ -100,4 +119,23 @@ func (m *Metric) Ping(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (m *Metric) sendAuditFromSingleMetric(ctx context.Context, metric models.Metrics) {
+	var metrics []models.Metrics
+	metrics = append(metrics, metric)
+	ev := m.formMetrics(metrics)
+	m.obs.NotifyObservers(ctx, ev)
+}
+
+func (m *Metric) formMetrics(metrics []models.Metrics) models.AuditEvent {
+	metricNames := make([]string, len(metrics))
+
+	for _, m := range metrics {
+		metricNames = append(metricNames, m.ID)
+	}
+	return models.AuditEvent{
+		TS:      time.Now().Unix(),
+		Metrics: metricNames,
+	}
 }

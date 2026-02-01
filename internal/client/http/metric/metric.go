@@ -1,4 +1,4 @@
-package http
+package metric
 
 import (
 	"bytes"
