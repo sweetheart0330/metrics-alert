@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
 	"time"
 
+	rn "github.com/sweetheart0330/metrics-alert/internal/agent/runtime"
 	"github.com/sweetheart0330/metrics-alert/internal/config"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/postgre"
 	"golang.org/x/sync/errgroup"
 
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -32,10 +36,10 @@ func RunAgent(ctx context.Context) error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
-	clCfg := httpCl.Config{Host: "http://" + cfg.Host}
+	clCfg := httpCl.Config{Host: "http://" + cfg.Host, SecretKey: cfg.SecretKey}
 	cl := httpCl.NewClient(clCfg)
-	//ag := runtime.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
-	serv := servAgent.NewAgent(cl, nil, cfg.ReportInterval, cfg.PollInterval, &sugar)
+	ag := rn.NewRuntimeMetrics(ctx, cfg.PollInterval, &sugar)
+	serv := servAgent.NewAgent(cl, ag, cfg.ReportInterval, cfg.PollInterval, &sugar)
 
 	sugar.Info("Agent started")
 
@@ -44,6 +48,7 @@ func RunAgent(ctx context.Context) error {
 
 func RunServer(ctx context.Context) error {
 	cfg, err := config.GetServer()
+	//cfg, err := config.NewServerConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get server flags, err: %w", err)
 	}
@@ -55,18 +60,18 @@ func RunServer(ctx context.Context) error {
 
 	defer logger.Sync()
 	sugar := *logger.Sugar()
-	fileStorage, err := filestore.NewFileStorage(cfg.FileStoragePath)
+
+	repo, err := chooseRepo(ctx, &sugar, cfg)
 	if err != nil {
-		return fmt.Errorf("failed to init file storage, err: %w", err)
+		return fmt.Errorf("failed to init repo, err: %w", err)
 	}
 
-	inMemoryRepo := memory.NewMemStorage()
-	MetricServ, err := metric.New(ctx, inMemoryRepo, fileStorage, *cfg.StoreInterval, cfg.Restore, sugar)
+	MetricServ, err := metric.New(repo, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to init metric service, err: %w", err)
 	}
 
-	h, err := handler.NewHandler(MetricServ, sugar)
+	h, err := handler.NewHandler(MetricServ, sugar, cfg.SecretKey, cfg.RateLimit)
 	if err != nil {
 		return fmt.Errorf("failed to create new handler: %w", err)
 	}
@@ -99,4 +104,24 @@ func RunServer(ctx context.Context) error {
 	})
 
 	return eg.Wait()
+}
+
+func chooseRepo(ctx context.Context, log *zap.SugaredLogger, cfg config.ServerConfig) (interfaces.IRepository, error) {
+	if len(cfg.DBAddress) != 0 {
+		db, err := postgre.NewDatabase(ctx, cfg.DBAddress, log)
+		if err != nil {
+			return nil, fmt.Errorf("failed to init database, err: %w", err)
+		}
+
+		return db, nil
+	}
+
+	fileStorage, err := filestore.NewFileStorage(cfg.FileStoragePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init file storage, err: %w", err)
+	}
+
+	inMemoryRepo := memory.NewMemStorage(ctx, fileStorage, log, cfg.Restore, *cfg.StoreInterval)
+
+	return inMemoryRepo, nil
 }

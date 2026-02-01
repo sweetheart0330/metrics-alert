@@ -62,7 +62,7 @@ func Test_NewAgent(t *testing.T) {
 //		//	},
 //		//	wantErr: nil,
 //		//	prepare: func(args args, err error) {
-//		//		mockCollector.EXPECT().GetGauge().Return(args.gaugeMap)
+//		//		mockCollector.EXPECT().GetMetrics().Return(args.gaugeMap)
 //		//		args.gaugeMap.Range(func(k, v interface{}) bool {
 //		//			fl := v.(float64)
 //		//			mockCl.EXPECT().SendGaugeMetric(model.Metrics{
@@ -87,7 +87,7 @@ func Test_NewAgent(t *testing.T) {
 //			},
 //			wantErr: errors.New("failed to send gauge request"),
 //			prepare: func(args args, err error) {
-//				mockCollector.EXPECT().GetGauge().Return(args.gaugeMap).AnyTimes()
+//				mockCollector.EXPECT().GetMetrics().Return(args.gaugeMap).AnyTimes()
 //				mockCl.EXPECT().SendGaugeMetric(gomock.Any()).Return(err).AnyTimes()
 //			},
 //		},
@@ -103,7 +103,7 @@ func Test_NewAgent(t *testing.T) {
 //		//	},
 //		//	wantErr: errors.New("failed to send counter request"),
 //		//	prepare: func(args args, err error) {
-//		//		mockCollector.EXPECT().GetGauge().Return(args.gaugeMap)
+//		//		mockCollector.EXPECT().GetMetrics().Return(args.gaugeMap)
 //		//		args.gaugeMap.Range(func(k, v interface{}) bool {
 //		//			fl := v.(float64)
 //		//			mockCl.EXPECT().SendGaugeMetric(model.Metrics{

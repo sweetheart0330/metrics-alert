@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"strings"
@@ -14,6 +18,8 @@ const (
 	compressReqHeader  = "Accept-Encoding"
 	compressRespHeader = "Content-Encoding"
 	compressFormat     = "gzip"
+	hashSumHeader      = "HashSHA256"
+	contentHeader      = "Content-Type"
 )
 
 type gzipWriter struct {
@@ -23,6 +29,68 @@ type gzipWriter struct {
 
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
+}
+
+func (h Handler) CheckHashSum(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(r.Header.Get(contentHeader)) == 0 || len(h.secretKey) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		receivedSignature := r.Header.Get(hashSumHeader) // или как ты его назвал
+		if receivedSignature == "" {
+			next.ServeHTTP(w, r)
+			//http.Error(w, "Missing HMAC signature", http.StatusForbidden)
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+			return
+		}
+
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		h := hmac.New(sha256.New, []byte(h.secretKey))
+		_, err = h.Write(bodyBytes)
+		if err != nil {
+			http.Error(w, "Failed to compute HMAC", http.StatusInternalServerError)
+			return
+		}
+		expectedSignature := h.Sum(nil)
+
+		receivedBytes, err := hex.DecodeString(receivedSignature)
+		if err != nil {
+			http.Error(w, "Invalid signature format", http.StatusBadRequest)
+			return
+		}
+
+		if !hmac.Equal(expectedSignature, receivedBytes) {
+			http.Error(w, "Invalid HMAC signature", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// PoolWorker создает middleware с ограничением параллельных запросов
+func (h Handler) PoolWorker() func(http.Handler) http.Handler {
+	sem := make(chan struct{}, h.rateLimit)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+				next.ServeHTTP(w, r)
+			default:
+				http.Error(w, "Server is too busy, try again later", http.StatusServiceUnavailable)
+			}
+		})
+	}
 }
 
 func (h Handler) CompressHandle(next http.Handler) http.Handler {
