@@ -108,7 +108,9 @@ func (r *Metrics) collectUtilMetrics() {
 	r.storeGaugeMetric(FreeMemory, float64(v.Free))
 
 	percentages, _ := cpu.Percent(time.Second, false)
-	r.storeGaugeMetric(CPUutilization1, percentages[0])
+	if len(percentages) > 0 {
+		r.storeGaugeMetric(CPUutilization1, percentages[0])
+	}
 }
 
 func (r *Metrics) collectMetrics() {

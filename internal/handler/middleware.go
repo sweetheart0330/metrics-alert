@@ -6,7 +6,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -35,7 +34,6 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func (h Handler) CheckHashSum(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if len(r.Header.Get(contentHeader)) == 0 || len(h.secretKey) == 0 {
-			fmt.Printf("here1 %s, here: %d", r.Header.Get(contentHeader), len(h.secretKey))
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -46,8 +44,6 @@ func (h Handler) CheckHashSum(next http.Handler) http.Handler {
 			//http.Error(w, "Missing HMAC signature", http.StatusForbidden)
 			return
 		}
-
-		fmt.Println("hash: ", receivedSignature)
 
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -84,7 +80,6 @@ func (h Handler) CheckHashSum(next http.Handler) http.Handler {
 func (h Handler) PoolWorker() func(http.Handler) http.Handler {
 	sem := make(chan struct{}, h.rateLimit)
 
-	fmt.Println("ratelimit", h.rateLimit)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			select {
