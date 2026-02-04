@@ -1,7 +1,6 @@
 package metric
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ import (
 func Test_New(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := mocks.NewMockIRepository(ctrl)
-	mockFileSaver := mocks.NewMockFileSaver(ctrl)
+	mockAudit := mocks.NewMockPublisher(ctrl)
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		t.Errorf("failed to init logger, err: %v", err)
@@ -23,7 +22,7 @@ func Test_New(t *testing.T) {
 	defer logger.Sync()
 	sugar := *logger.Sugar()
 
-	m, _ := New(context.Background(), mockRepo, mockFileSaver, 0, false, sugar)
+	m, _ := New(mockRepo, sugar, mockAudit)
 
 	assert.Equal(t, mockRepo, m.repo)
 }

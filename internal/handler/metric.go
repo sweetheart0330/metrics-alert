@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -20,7 +22,9 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.metric.UpdateMetric(*metric)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
+	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -43,8 +47,9 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-
-	err = h.metric.UpdateMetric(*metric)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
+	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metric, err: %v", err), http.StatusBadRequest)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -66,6 +71,41 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h Handler) UpdateJSONMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.log.Errorf("failed to read body, err: %v", err)
+		http.Error(w, fmt.Sprintf("failed to read body, err: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	var metrics []models.Metrics
+	err = json.Unmarshal(body, &metrics)
+	if err != nil {
+		h.log.Errorf("failed to unmarshal body, err: %v", err)
+		http.Error(w, fmt.Sprintf("failed to unmarshal body, err: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
+	err = h.metric.UpdateMetrics(ctx, metrics)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to update metrics, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Header.Get("Content-Type") != "application/json" {
@@ -75,13 +115,13 @@ func (h Handler) GetJSONMetric(w http.ResponseWriter, r *http.Request) {
 
 	metric, err := h.getMetricFromBody(w, r)
 	if err != nil {
-		// http.Error уже устанавливает заголовки и статус
+		// metric.Error уже устанавливает заголовки и статус
 		http.Error(w, fmt.Sprintf("failed to get body, err: %v", err), http.StatusBadRequest)
 		h.log.Error("failed to get body, err: %v", err)
 		return
 	}
 
-	resp, err := h.metric.GetMetric(metric.ID)
+	resp, err := h.metric.GetMetric(r.Context(), metric.ID)
 	if err != nil {
 		if errors.Is(err, servMetric.ErrMetricNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -116,7 +156,7 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.metric.GetMetric(metric.ID)
+	resp, err := h.metric.GetMetric(r.Context(), metric.ID)
 	if err != nil {
 		if errors.Is(err, servMetric.ErrMetricNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -148,15 +188,17 @@ func (h Handler) GetMetric(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	metrics, err := h.metric.GetAllMetrics()
+	metrics, err := h.metric.GetAllMetrics(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		h.log.Errorw("failed to get all metrics", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Выполняем шаблон с данными метрик
 	err = h.template.Execute(w, metrics)
 	if err != nil {
+		h.log.Errorw("failed to execute template", "error", err)
 		http.Error(w, "Ошибка выполнения шаблона: "+err.Error(),
 			http.StatusInternalServerError)
 		return
@@ -239,4 +281,25 @@ func (h Handler) getMetricFromBody(w http.ResponseWriter, r *http.Request) (*mod
 	}
 
 	return &metric, nil
+}
+
+func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
+	err := h.metric.Ping(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to ping metric, err: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	fmt.Println("r.RemoteAddr:", r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+
+	fmt.Println("host:", host)
+	return host
 }

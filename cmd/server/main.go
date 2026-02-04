@@ -3,13 +3,22 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os/signal"
 	"syscall"
 
 	"github.com/sweetheart0330/metrics-alert/internal/app"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+
+	_ "net/http/pprof" // профилировщик
 )
+
+func pprof() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -25,6 +34,8 @@ func main() {
 	})
 
 	eg.Go(func() error { return app.RunServer(egCtx) })
+
+	pprof()
 
 	if err := eg.Wait(); err != nil {
 		log.Println("Error running server", zap.Error(err))

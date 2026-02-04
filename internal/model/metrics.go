@@ -9,6 +9,10 @@ const (
 	ValueParam = "value"
 )
 
+type clientIP string
+
+var CtxClientIP clientIP = "client_ip"
+
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
 // Органичиваясь плоской моделью.
 // Delta и Value объявлены через указатели,
@@ -20,4 +24,10 @@ type Metrics struct {
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
 	Hash  string   `json:"hash,omitempty"`
+}
+
+type AuditEvent struct {
+	TS        int64    `json:"ts"`         // unix timestamp
+	Metrics   []string `json:"metrics"`    // metric names
+	IPAddress string   `json:"ip_address"` // client IP
 }

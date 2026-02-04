@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 type FileStorage struct {
 	file *os.File // файл для записи
+	buf  *bufio.Writer
 }
 
 func NewFileStorage(filename string) (*FileStorage, error) {

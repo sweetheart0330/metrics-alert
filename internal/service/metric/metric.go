@@ -8,88 +8,73 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sweetheart0330/metrics-alert/internal/observer"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/interfaces"
 	"go.uber.org/zap"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
-	"github.com/sweetheart0330/metrics-alert/internal/repository"
 )
 
 var (
 	ErrMetricNotFound    = errors.New("metric not found")
 	ErrUnknownMetricType = errors.New("unknown metric type")
+	ErrConnRepo          = errors.New("connection repository error")
 )
 
 type Metric struct {
-	repo          repository.IRepository
-	fileStorage   repository.FileSaver
-	log           zap.SugaredLogger
-	storeInterval uint
-	restore       bool
+	repo interfaces.IRepository
+	log  zap.SugaredLogger
+	obs  observer.Publisher
 }
 
-func New(ctx context.Context, repo repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, restore bool, log zap.SugaredLogger) (*Metric, error) {
+func New(repo interfaces.IRepository, log zap.SugaredLogger, observer observer.Publisher) (*Metric, error) {
 	metric := &Metric{
-		repo:          repo,
-		fileStorage:   fileStorage,
-		storeInterval: storeInterval,
-		log:           log,
-	}
-
-	if restore {
-		metrics, err := metric.fileStorage.UploadMetrics()
-		if err != nil {
-			log.Warnw("failed to upload metrics", "error", err)
-		} else {
-			repo.UpdateAllMetrics(metrics)
-			log.Debug("metrics are successfully restored")
-		}
-	}
-
-	if storeInterval > 0 {
-		go metric.saveInPeriod(ctx)
+		repo: repo,
+		log:  log,
+		obs:  observer,
 	}
 
 	return metric, nil
 }
 
-func (m *Metric) saveInPeriod(ctx context.Context) {
-	t := time.NewTicker(time.Duration(m.storeInterval) * time.Second)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			t.Stop()
-			return
-		case <-t.C:
-			err := m.saveToFile()
-			if err != nil {
-				m.log.Errorw("failed to save to file", "error", err)
-			}
-			m.log.Info("saved metrics to file in period")
-		}
-	}
-}
-
-func (m *Metric) UpdateMetric(metrics models.Metrics) error {
-	if m.storeInterval == 0 {
-		err := m.saveToFile()
-		if err != nil {
-			return fmt.Errorf("failed to save to file, err: %w", err)
-		}
-	}
-
-	switch metrics.MType {
+func (m *Metric) UpdateMetric(ctx context.Context, metric models.Metrics) error {
+	switch metric.MType {
 	case models.Counter:
-		return m.repo.UpdateCounterMetric(metrics)
+		err := m.repo.UpdateCounterMetric(ctx, metric)
+		if err != nil {
+			return fmt.Errorf("failed to update counter metric: %w", err)
+		}
+
+		m.sendAuditFromSingleMetric(ctx, metric)
+		return nil
 	case models.Gauge:
-		return m.repo.UpdateGaugeMetric(metrics)
+		err := m.repo.UpdateGaugeMetric(ctx, metric)
+		if err != nil {
+			return fmt.Errorf("failed to update gauge metric: %w", err)
+		}
+
+		m.sendAuditFromSingleMetric(ctx, metric)
+		return nil
 	}
 
-	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metrics.MType)
+	return fmt.Errorf("%w: %s", ErrUnknownMetricType, metric.MType)
 }
 
-func (m *Metric) GetMetric(metric string) (models.Metrics, error) {
-	respMetric, err := m.repo.GetMetric(metric)
+func (m *Metric) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	err := m.repo.UpdateMetrics(ctx, metrics)
+	if err != nil {
+		m.log.Errorw("failed to update metrics", "error", err)
+		return fmt.Errorf("failed to update metrics: %w", err)
+	}
+
+	ev := m.formMetrics(ctx, metrics)
+	m.obs.NotifyObservers(ctx, ev)
+
+	return nil
+}
+
+func (m *Metric) GetMetric(ctx context.Context, metricID string) (models.Metrics, error) {
+	respMetric, err := m.repo.GetMetric(ctx, metricID)
 	if err != nil {
 		return models.Metrics{}, fmt.Errorf("failed to get metric: %w", err)
 	}
@@ -110,8 +95,8 @@ func (m *Metric) GetMetric(metric string) (models.Metrics, error) {
 	return respMetric, nil
 }
 
-func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
-	metrics, err := m.repo.GetAllMetrics()
+func (m *Metric) GetAllMetrics(ctx context.Context) ([]models.Metrics, error) {
+	metrics, err := m.repo.GetAllMetrics(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
@@ -126,15 +111,33 @@ func (m *Metric) GetAllMetrics() ([]models.Metrics, error) {
 	return metrics, nil
 }
 
-func (m *Metric) saveToFile() error {
-	metrics, err := m.repo.GetAllMetrics()
+func (m *Metric) Ping(ctx context.Context) error {
+	err := m.repo.Ping(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get metrics, err: %w", err)
-	}
-	err = m.fileStorage.WriteMetrics(metrics)
-	if err != nil {
-		return fmt.Errorf("failed to write metrics, err: %w", err)
+		m.log.Errorw("failed to ping metrics", "error", err)
+		return fmt.Errorf("failed to ping: %w", err)
 	}
 
 	return nil
+}
+
+func (m *Metric) sendAuditFromSingleMetric(ctx context.Context, metric models.Metrics) {
+	var metrics []models.Metrics
+	metrics = append(metrics, metric)
+	ev := m.formMetrics(ctx, metrics)
+	m.obs.NotifyObservers(ctx, ev)
+}
+
+func (m *Metric) formMetrics(ctx context.Context, metrics []models.Metrics) models.AuditEvent {
+	metricNames := make([]string, len(metrics))
+
+	for i, m := range metrics {
+		metricNames[i] = m.ID
+	}
+
+	return models.AuditEvent{
+		TS:        time.Now().Unix(),
+		Metrics:   metricNames,
+		IPAddress: ctx.Value(models.CtxClientIP).(string),
+	}
 }

@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"go.uber.org/zap"
 	"html/template"
 	"path/filepath"
+
+	"go.uber.org/zap"
 
 	model "github.com/sweetheart0330/metrics-alert/internal/model"
 	"github.com/sweetheart0330/metrics-alert/internal/service/contracts"
@@ -58,12 +59,14 @@ var metricHTML = `
 `
 
 type Handler struct {
-	metric   contracts.MetricService
-	template *template.Template
-	log      zap.SugaredLogger
+	metric    contracts.MetricService
+	template  *template.Template
+	log       zap.SugaredLogger
+	secretKey string
+	rateLimit int
 }
 
-func NewHandler(metric contracts.MetricService, log zap.SugaredLogger) (Handler, error) {
+func NewHandler(metric contracts.MetricService, log zap.SugaredLogger, secretKey string, rateLimit int) (Handler, error) {
 	tmplPath := filepath.Join("internal", "handler", "template", "metrics.html")
 	tmpl, err := template.
 		New("metrics.html").
@@ -73,5 +76,11 @@ func NewHandler(metric contracts.MetricService, log zap.SugaredLogger) (Handler,
 		return Handler{}, err
 	}
 
-	return Handler{metric: metric, template: tmpl, log: log}, nil
+	return Handler{
+		metric:    metric,
+		template:  tmpl,
+		log:       log,
+		secretKey: secretKey,
+		rateLimit: rateLimit,
+	}, nil
 }

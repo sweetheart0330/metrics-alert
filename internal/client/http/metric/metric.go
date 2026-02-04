@@ -1,24 +1,38 @@
-package http
+package metric
 
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	models "github.com/sweetheart0330/metrics-alert/internal/model"
+	"github.com/sweetheart0330/metrics-alert/internal/service/metric"
+	"go.uber.org/zap"
 )
 
 const (
-	updMetricPath = "/update/"
+	updMetricPath   = "/update/"
+	updMetricsBatch = "/updates/"
+
+	startDelay = 1
+	deltaDelay = 2
+	maxRetries = 5
 )
 
 type Config struct {
-	Host string `env:"ADDRESS"`
+	Host      string
+	SecretKey string
 }
+
 type Client struct {
 	cfg Config
 	cl  *http.Client
@@ -35,7 +49,7 @@ func (c Client) SendGaugeMetric(m models.Metrics) error {
 
 	//strVal := strconv.FormatFloat(*m.Value, 'f', -1, 64)
 
-	resp, err := c.sendJSONRequest(m)
+	resp, err := c.sendJSONRequest(m, updMetricPath)
 	if err != nil {
 		return fmt.Errorf("failed to send gauge metric, err: %w", err)
 	}
@@ -60,7 +74,7 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 
 	//strVal := strconv.FormatInt(*m.Delta, 10)
 
-	resp, err := c.sendJSONRequest(m)
+	resp, err := c.sendJSONRequest(m, updMetricPath)
 	if err != nil {
 		return fmt.Errorf("failed to send counter metric, err: %w", err)
 	}
@@ -78,9 +92,48 @@ func (c Client) SendCounterMetric(m models.Metrics) error {
 	return nil
 }
 
-func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
-	reqURL := formJSONURL(c.cfg.Host)
-	jsonMetric, err := json.Marshal(&metric)
+func (c Client) SendMetricsBatch(metrics []models.Metrics, log *zap.SugaredLogger) (err error) {
+	for retry := startDelay; retry <= maxRetries; retry += deltaDelay {
+		err = c.sendMetricBatch(metrics)
+		if err != nil {
+			if errors.Is(err, metric.ErrConnRepo) {
+				log.Warnw("failed to send metrics batch, trying one more time",
+					"retry", retry,
+					"error", err)
+				time.Sleep(time.Duration(retry) * time.Second)
+				continue
+			}
+
+			return err
+		}
+
+		return nil
+	}
+
+	return err
+}
+
+func (c Client) sendMetricBatch(metrics []models.Metrics) error {
+	resp, err := c.sendJSONRequest(metrics, updMetricsBatch)
+	if err != nil {
+		return fmt.Errorf("failed to send counter metric, err: %w", err)
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, err := getDecompressedBody(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read resp body body, err: %w", err)
+		}
+
+		return fmt.Errorf("bad response from server, status code: %d, error: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+func (c Client) sendJSONRequest(data interface{}, method string) (*http.Response, error) {
+	reqURL := formJSONURL(c.cfg.Host, method)
+	jsonMetric, err := json.Marshal(&data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create json body, err: %w", err)
 	}
@@ -95,16 +148,34 @@ func (c Client) sendJSONRequest(metric models.Metrics) (*http.Response, error) {
 		return nil, fmt.Errorf("could not create request: %w", err)
 	}
 
+	if len(c.cfg.SecretKey) != 0 {
+		hash, err := c.setHashToHeader(jsonMetric)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create hash, err: %w", err)
+		}
+		req.Header.Set("HashSHA256", hex.EncodeToString(hash))
+	}
+
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
-	//LogIncomingRequest(req)
+
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not send request: %w", err)
 	}
-	//	LogOutgoingResponse(resp)
 	return resp, nil
+}
+
+func (c Client) setHashToHeader(body []byte) ([]byte, error) {
+	h := hmac.New(sha256.New, []byte(c.cfg.SecretKey))
+	_, err := h.Write(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to body to hmac, err: %w", err)
+	}
+	dst := h.Sum(nil)
+
+	return dst, nil
 }
 
 func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, error) {
@@ -124,10 +195,10 @@ func (c Client) sendRequest(m models.Metrics, strVal string) (*http.Response, er
 	return resp, nil
 }
 
-func formJSONURL(url string) string {
+func formJSONURL(url string, method string) string {
 	builder := strings.Builder{}
 	builder.WriteString(url)
-	builder.WriteString(updMetricPath)
+	builder.WriteString(method)
 
 	return builder.String()
 }
