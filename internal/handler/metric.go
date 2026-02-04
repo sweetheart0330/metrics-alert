@@ -23,7 +23,7 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
 	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
 	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metric, err: %v", err), http.StatusBadRequest)
@@ -96,7 +96,7 @@ func (h Handler) UpdateJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP(r))
 	err = h.metric.UpdateMetrics(ctx, metrics)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metrics, err: %v", err), http.StatusInternalServerError)
@@ -295,8 +295,11 @@ func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
 
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	fmt.Println("r.RemoteAddr:", r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr // если не удалось разобрать
+		return r.RemoteAddr
 	}
+
+	fmt.Println("host:", host)
 	return host
 }

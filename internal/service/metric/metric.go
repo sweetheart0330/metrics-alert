@@ -67,7 +67,7 @@ func (m *Metric) UpdateMetrics(ctx context.Context, metrics []models.Metrics) er
 		return fmt.Errorf("failed to update metrics: %w", err)
 	}
 
-	ev := m.formMetrics(metrics)
+	ev := m.formMetrics(ctx, metrics)
 	m.obs.NotifyObservers(ctx, ev)
 
 	return nil
@@ -124,18 +124,20 @@ func (m *Metric) Ping(ctx context.Context) error {
 func (m *Metric) sendAuditFromSingleMetric(ctx context.Context, metric models.Metrics) {
 	var metrics []models.Metrics
 	metrics = append(metrics, metric)
-	ev := m.formMetrics(metrics)
+	ev := m.formMetrics(ctx, metrics)
 	m.obs.NotifyObservers(ctx, ev)
 }
 
-func (m *Metric) formMetrics(metrics []models.Metrics) models.AuditEvent {
+func (m *Metric) formMetrics(ctx context.Context, metrics []models.Metrics) models.AuditEvent {
 	metricNames := make([]string, len(metrics))
 
-	for _, m := range metrics {
-		metricNames = append(metricNames, m.ID)
+	for i, m := range metrics {
+		metricNames[i] = m.ID
 	}
+
 	return models.AuditEvent{
-		TS:      time.Now().Unix(),
-		Metrics: metricNames,
+		TS:        time.Now().Unix(),
+		Metrics:   metricNames,
+		IPAddress: ctx.Value(models.CtxClientIP).(string),
 	}
 }
