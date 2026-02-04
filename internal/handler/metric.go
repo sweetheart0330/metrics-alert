@@ -295,11 +295,9 @@ func (h Handler) Ping(w http.ResponseWriter, r *http.Request) {
 
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	fmt.Println("r.RemoteAddr:", r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
 	}
 
-	fmt.Println("host:", host)
 	return host
 }
