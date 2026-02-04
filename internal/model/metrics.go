@@ -7,9 +7,11 @@ const (
 	TypeParam  = "type"
 	NameParam  = "name"
 	ValueParam = "value"
-
-	ContextClientIP = "client_ip"
 )
+
+type clientIP string
+
+var CtxClientIP clientIP = "client_ip"
 
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
 // Органичиваясь плоской моделью.

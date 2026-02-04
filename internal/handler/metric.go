@@ -23,7 +23,7 @@ func (h Handler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
 	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func (h Handler) UpdateJSONMetric(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
 	err = h.metric.UpdateMetric(ctx, *metric)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metric, err: %v", err), http.StatusBadRequest)
@@ -96,7 +96,7 @@ func (h Handler) UpdateJSONMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, models.ContextClientIP, clientIP)
+	ctx = context.WithValue(ctx, models.CtxClientIP, clientIP)
 	err = h.metric.UpdateMetrics(ctx, metrics)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update metrics, err: %v", err), http.StatusInternalServerError)
