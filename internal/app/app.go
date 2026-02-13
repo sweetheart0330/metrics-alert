@@ -9,6 +9,7 @@ import (
 
 	"github.com/sweetheart0330/metrics-alert/internal/config"
 	"github.com/sweetheart0330/metrics-alert/internal/repository/filestore"
+	"github.com/sweetheart0330/metrics-alert/internal/repository/postgre"
 	"golang.org/x/sync/errgroup"
 
 	httpCl "github.com/sweetheart0330/metrics-alert/internal/client/http"
@@ -61,7 +62,13 @@ func RunServer(ctx context.Context) error {
 	}
 
 	inMemoryRepo := memory.NewMemStorage()
-	MetricServ, err := metric.New(ctx, inMemoryRepo, fileStorage, *cfg.StoreInterval, cfg.Restore, sugar)
+
+	db, err := postgre.NewDatabase(ctx, cfg.DBAddress)
+	if err != nil {
+		return fmt.Errorf("failed to init database, err: %w", err)
+	}
+
+	MetricServ, err := metric.New(ctx, inMemoryRepo, db, fileStorage, *cfg.StoreInterval, cfg.Restore, sugar)
 	if err != nil {
 		return fmt.Errorf("failed to init metric service, err: %w", err)
 	}

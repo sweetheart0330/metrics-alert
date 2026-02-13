@@ -21,15 +21,17 @@ var (
 
 type Metric struct {
 	repo          repository.IRepository
+	repoPg        repository.IRepository
 	fileStorage   repository.FileSaver
 	log           zap.SugaredLogger
 	storeInterval uint
 	restore       bool
 }
 
-func New(ctx context.Context, repo repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, restore bool, log zap.SugaredLogger) (*Metric, error) {
+func New(ctx context.Context, repo repository.IRepository, repoPg repository.IRepository, fileStorage repository.FileSaver, storeInterval uint, restore bool, log zap.SugaredLogger) (*Metric, error) {
 	metric := &Metric{
 		repo:          repo,
+		repoPg:        repoPg,
 		fileStorage:   fileStorage,
 		storeInterval: storeInterval,
 		log:           log,
@@ -134,6 +136,16 @@ func (m *Metric) saveToFile() error {
 	err = m.fileStorage.WriteMetrics(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to write metrics, err: %w", err)
+	}
+
+	return nil
+}
+
+func (m *Metric) Ping(ctx context.Context) error {
+	err := m.repoPg.Ping(ctx)
+	if err != nil {
+		m.log.Errorw("failed to ping metrics", "error", err)
+		return fmt.Errorf("failed to ping: %w", err)
 	}
 
 	return nil
